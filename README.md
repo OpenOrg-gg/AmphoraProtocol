@@ -19,6 +19,24 @@ to compile the contracts, simply run
 
 `npm run test`
 
+## To Do:
+
+- need to be able to add `_enabledLPTokens`
+- and remove from them
+- check on deposit (force withdraw if mismatch)
+- Check on withdrawal
+- Adjust controller balance manager
+- update `vaultSummaries()` to include lptokens
+- check that oracle reads virtaul balances correctly
+- check the liquidation math reads virtual balances correctly
+- check the liquidation flow correctly moves virtual balances and deposit tokens
+- Create vesting version of Amphora
+- Set vesting Amphora as the reward
+- Implement onchain treasury
+- Create "fill the amphora" system to bootstrap network
+- Rework reward splitter
+- Create smart contracts for Amphora Locked CRV and Amphora Locked CVX
+
 ## repository
 
 ```
@@ -28,8 +46,6 @@ to compile the contracts, simply run
 │   └───governance/* - simulation of governance processes. npx hardhat test test/governance/index.ts
 ├───contracts
 │   ├───_external - external contracts copied into the repository, e.g. openzeppelin, uniswap, chainlink
-│   ├── genesis- genesis related contracts
-│   │   └── wavepool.sol - for distribution of IPT. permissioned claim
 │   ├── governance - governance related contracts
 │   │   ├── governor - governor is a reimplmentation of Governor Bravo, aptly named Governor Charlie. It uses a custom proxy system
 │   │   │   ├── GovernorDelegate.sol - Delegate for governor contract
