@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../IOracleRelay.sol";
+import "../IOracleRelaySub.sol";
 import "./ICurvePoolFeed.sol";
 import "../../lending/IVaultController.sol";
 import "../IOracleMaster.sol";

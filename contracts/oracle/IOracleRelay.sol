@@ -6,4 +6,7 @@ pragma solidity 0.8.9;
 interface IOracleRelay {
   // returns  price with 18 decimals
   function currentValue() external view returns (uint256);
+  function updateOwner(address) external;
+  function updateAnchor(address) external;
+  function updateMain(address) external;
 }

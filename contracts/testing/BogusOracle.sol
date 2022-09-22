@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../oracle/IOracleRelay.sol";
+import "../oracle/IOracleRelaySub.sol";
 
 contract BogusOracle is IOracleRelay {
 

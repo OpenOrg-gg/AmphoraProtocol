@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../IOracleRelay.sol";
+import "../IOracleRelaySub.sol";
 import "../../_external/chainlink/IAggregator.sol";
 
 /// @title Oracle that wraps a chainlink oracle

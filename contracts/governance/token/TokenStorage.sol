@@ -9,10 +9,10 @@ contract TokenDelegatorStorage is Context {
   address public implementation;
 
   /// @notice EIP-20 token name for this token
-  string public name = "Interest Protocol";
+  string public name = "Vote Locked Amphora Protocol";
 
   /// @notice EIP-20 token symbol for this token
-  string public symbol = "IPT";
+  string public symbol = "vlAMPH";
 
   /// @notice Total number of tokens in circulation
   uint256 public totalSupply;

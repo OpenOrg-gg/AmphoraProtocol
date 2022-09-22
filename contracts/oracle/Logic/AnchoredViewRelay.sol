@@ -8,6 +8,7 @@ import "../IOracleRelay.sol";
 /// ensures that the main relay's price is within some amount of the anchor relay price
 /// if not, the call reverts, effectively disabling the oracle & any actions which require it
 contract AnchoredViewRelay is IOracleRelay {
+  address public owner;
   address public _anchorAddress;
   IOracleRelay public _anchorRelay;
 
@@ -70,4 +71,21 @@ contract AnchoredViewRelay is IOracleRelay {
     // return mainValue
     return mainValue;
   }
+
+  function updateAnchor(address _anchor) public {
+    require(msg.sender == owner, "!auth");
+    _anchorAddress = _anchor;
+    _anchorRelay = IOracleRelay(_anchor);
+  }
+
+  function updateMain(address _main) public {
+    require(msg.sender == owner, "!auth");
+    _mainAddress = _main;
+    _mainRelay = IOracleRelay(_main);
+  }
+
+  function updateOwner(address _owner) public {
+    owner = _owner;
+  }
+
 }

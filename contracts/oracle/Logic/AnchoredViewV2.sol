@@ -11,6 +11,7 @@ import "../../lending/IVaultController.sol";
 /// if not, the call reverts, effectively disabling the oracle & any actions which require it
 contract AnchoredViewV2 is IOracleRelay {
   address public _anchorAddress;
+  address public owner;
   IOracleRelay public _anchorRelay;
 
   address public _mainAddress;
@@ -43,6 +44,7 @@ contract AnchoredViewV2 is IOracleRelay {
 
     _widthNumerator = widthNumerator;
     _widthDenominator = widthDenominator;
+    owner = msg.sender;
   }
 
   /// @notice returns current value of oracle
@@ -82,5 +84,21 @@ contract AnchoredViewV2 is IOracleRelay {
 
     // return mainValue
     return mainValue;
+  }
+  
+  function updateAnchor(address _anchor) public {
+    require(msg.sender == owner, "!auth");
+    _anchorAddress = _anchor;
+    _anchorRelay = IOracleRelay(_anchor);
+  }
+
+  function updateMain(address _main) public {
+    require(msg.sender == owner, "!auth");
+    _mainAddress = _main;
+    _mainRelay = IOracleRelay(_main);
+  }
+
+  function updateOwner(address _owner) public {
+    owner = _owner;
   }
 }

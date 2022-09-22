@@ -3,9 +3,9 @@ pragma solidity 0.8.9;
 
 import "./_external/IERC20Metadata.sol";
 
-/// @title USDI Events
-/// @notice interface which contains any events which the USDI contract emits
-interface USDIEvents {
+/// @title USDA Events
+/// @notice interface which contains any events which the USDA contract emits
+interface USDAEvents {
   event Deposit(address indexed _from, uint256 _value);
   event Withdraw(address indexed _from, uint256 _value);
   event Mint(address to, uint256 _value);
@@ -13,9 +13,9 @@ interface USDIEvents {
   event Donation(address indexed _from, uint256 _value, uint256 _totalSupply);
 }
 
-/// @title USDI Interface
-/// @notice extends USDIEvents and IERC20Metadata
-interface IUSDI is IERC20Metadata, USDIEvents {
+/// @title USDA Interface
+/// @notice extends USDAEvents and IERC20Metadata
+interface IUSDA is IERC20Metadata, USDAEvents {
   /// @notice initializer specifies the reserveAddress
   function initialize(address reserveAddress) external;
 

@@ -1,13 +1,3 @@
-# usdi contracts
-
-repository url:
-gfx.cafe: https://gfx.cafe/ip/contracts
-
-mirrors:
-github: https://github.com/gfx-labs/ip-contracts
-
-Looking for the app? [Click here](https://gfx.cafe/ip/app)
-
 
 ## setup
 
@@ -67,9 +57,17 @@ to compile the contracts, simply run
 │   │   ├── IOracleRelay.sol - generic interface for an oracle relay which can report a price
 │   │   ├── IOracleMaster.sol - Interface for the oracle master
 │   │   └── OracleMaster.sol - Oracle master is effecitvely an address book of oracle relays
+│   ├── rewards
+│   │   ├── Booster.sol - the primary rewards engine that controls pools.
+│   │   ├── ConvexStaker.sol - the smart contract that manages staking LP pairs into Convex directly.
+│   │   ├── ExtraRewardsStashConvex.sol - a rewards stash template that is designed to process Convex rewards.
+│   │   ├── RewardsFactory.sol - A factory for generating base reward pools for each staking pool.
+│   │   ├── StashFactory.sol - A factory for generating stashes - uses ExtraRewardsStashConvex.sol as template.
+│   │   ├── TokenFactory.sol - A factory that generates deposit tokens when depositing into a pool. Deposit tokens are then staked in corresponding base reward pool.
+│   │   └── VirtualBalanceRewardPool.sol - A factory that creates virtual balance reward pools that attach to a base reward pool any time there is more than one token reward per pool.
 │   ├── token
 │   │   └── UFragments.sol - the amplforth ufragments contract
-│   ├───IUSDI.sol - interface & events for USDI
-│   └───USDI.sol - relabancing erc20 token
+│   ├───IUSDA.sol - interface & events for USDA
+│   └───USDA.sol - relabancing erc20 token
 └───hardhat.config.ts - configuration for hardhat
 ```

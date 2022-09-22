@@ -16,9 +16,9 @@ interface VaultControllerEvents {
   event NewVault(address vault_address, uint256 vaultId, address vaultOwner);
   event RegisterOracleMaster(address oracleMasterAddress);
   event RegisterCurveMaster(address curveMasterAddress);
-  event BorrowUSDi(uint256 vaultId, address vaultAddress, uint256 borrowAmount);
-  event RepayUSDi(uint256 vaultId, address vaultAddress, uint256 repayAmount);
-  event Liquidate(uint256 vaultId, address asset_address, uint256 usdi_to_repurchase, uint256 tokens_to_liquidate);
+  event BorrowUSDa(uint256 vaultId, address vaultAddress, uint256 borrowAmount);
+  event RepayUSDa(uint256 vaultId, address vaultAddress, uint256 repayAmount);
+  event Liquidate(uint256 vaultId, address asset_address, uint256 usda_to_repurchase, uint256 tokens_to_liquidate);
 }
 
 /// @title VaultController Interface
@@ -79,7 +79,7 @@ interface IVaultController is VaultControllerEvents {
 
   function borrowUsdi(uint96 id, uint192 amount) external;
 
-  function borrowUSDIto(
+  function borrowUSDAto(
     uint96 id,
     uint192 amount,
     address target
@@ -91,9 +91,9 @@ interface IVaultController is VaultControllerEvents {
     address target
   ) external;
 
-  function repayUSDi(uint96 id, uint192 amount) external;
+  function repayUSDa(uint96 id, uint192 amount) external;
 
-  function repayAllUSDi(uint96 id) external;
+  function repayAllUSDa(uint96 id) external;
 
   // admin
   function pause() external;
@@ -117,7 +117,7 @@ interface IVaultController is VaultControllerEvents {
     uint256 liquidationIncentive
   ) external;
 
-  function registerUSDi(address usdi_address) external;
+  function registerUSDa(address usda_address) external;
 
   function updateRegisteredErc20(
     address token_address,

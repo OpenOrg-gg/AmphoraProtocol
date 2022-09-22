@@ -22,8 +22,8 @@ const fundDave = async () => {
 }
 
 //set balances
-describe("TESTING USDI CONTRACT", async () => {
-    let startingUSDIAmount: BigNumber
+describe("TESTING USDA CONTRACT", async () => {
+    let startingUSDAAmount: BigNumber
     let startBlock: number
     before(async () => {
         startBlock = await ethers.provider.getBlockNumber()
@@ -37,14 +37,14 @@ describe("TESTING USDI CONTRACT", async () => {
         await mineBlock()
         const smallAmount = utils.parseEther("100")
         const smallAmount_e6 = smallAmount.div(BN("1e12"))
-        const startBalance = await s.USDI.balanceOf(s.Frank.address)
+        const startBalance = await s.USDA.balanceOf(s.Frank.address)
 
         //test for eronious input
         //should revert if not the admin
-        await expect(s.USDI.connect(s.Bob).mint(smallAmount_e6)).to.be.reverted
-        await expect(s.USDI.connect(s.Frank).mint(0)).to.be.reverted
+        await expect(s.USDA.connect(s.Bob).mint(smallAmount_e6)).to.be.reverted
+        await expect(s.USDA.connect(s.Frank).mint(0)).to.be.reverted
 
-        const mintResult = await s.USDI.connect(s.Frank).mint(smallAmount_e6)
+        const mintResult = await s.USDA.connect(s.Frank).mint(smallAmount_e6)
         await advanceBlockHeight(1)
         const mintArgs = await getArgs(mintResult)
         assert.equal(mintArgs._value.toString(), smallAmount.toString(), "Correct amount minted from event receipt")
@@ -52,7 +52,7 @@ describe("TESTING USDI CONTRACT", async () => {
         const mintGas = await getGas(mintResult)
         showBodyCyan("Gas cost to mint: ", mintGas)
 
-        let balance = await s.USDI.balanceOf(s.Frank.address)
+        let balance = await s.USDA.balanceOf(s.Frank.address)
 
         let difference = balance.sub(startBalance)
 
@@ -63,20 +63,20 @@ describe("TESTING USDI CONTRACT", async () => {
     it("check admin burn", async () => {
         const smallAmount = utils.parseEther("100")
         const smallAmount_e6 = smallAmount.div(BN("1e12"))
-        const startBalance = await s.USDI.balanceOf(s.Frank.address)
+        const startBalance = await s.USDA.balanceOf(s.Frank.address)
 
         //test for eronious input
         //should revert if not the admin
-        await expect(s.USDI.connect(s.Bob).burn(smallAmount_e6)).to.be.reverted
-        await expect(s.USDI.connect(s.Frank).burn(0)).to.be.reverted
+        await expect(s.USDA.connect(s.Bob).burn(smallAmount_e6)).to.be.reverted
+        await expect(s.USDA.connect(s.Frank).burn(0)).to.be.reverted
 
         //should revert if not the admin
-        const burnResult = await s.USDI.connect(s.Frank).mint(smallAmount_e6)
+        const burnResult = await s.USDA.connect(s.Frank).mint(smallAmount_e6)
         await advanceBlockHeight(1)
         const burnArgs = await getArgs(burnResult)
         assert.equal(burnArgs._value.toString(), smallAmount.toString(), "Correct amount burned from event receipt")
 
-        let balance = await s.USDI.balanceOf(s.Frank.address)
+        let balance = await s.USDA.balanceOf(s.Frank.address)
         let difference = balance.sub(startBalance)
 
         //expect balance to be decreased by smallAmount - interest
@@ -88,20 +88,20 @@ describe("TESTING USDI CONTRACT", async () => {
         const startingUSDCamount = await s.USDC.balanceOf(s.Dave.address)
         assert.equal(startingUSDCamount.toString(), s.Dave_USDC.toString(), "Starting USDC balance is correct")
 
-        //Dave already holds some USDi at this point
-        startingUSDIAmount = await s.USDI.balanceOf(s.Dave.address)
+        //Dave already holds some USDa at this point
+        startingUSDAAmount = await s.USDA.balanceOf(s.Dave.address)
 
         //approve
-        await s.USDC.connect(s.Dave).approve(s.USDI.address, usdcAmount)
+        await s.USDC.connect(s.Dave).approve(s.USDA.address, usdcAmount)
 
         //check pauseable 
-        await s.USDI.connect(s.Frank).pause()
+        await s.USDA.connect(s.Frank).pause()
         await advanceBlockHeight(1)
-        await expect(s.USDI.connect(s.Dave).deposit(usdcAmount)).to.be.revertedWith("Pausable: paused")
-        await s.USDI.connect(s.Frank).unpause()
+        await expect(s.USDA.connect(s.Dave).deposit(usdcAmount)).to.be.revertedWith("Pausable: paused")
+        await s.USDA.connect(s.Frank).unpause()
         await advanceBlockHeight(1)
 
-        const depositResult = await s.USDI.connect(s.Dave).deposit(usdcAmount)
+        const depositResult = await s.USDA.connect(s.Dave).deposit(usdcAmount)
         await advanceBlockHeight(1)
         const gasUsed = await getGas(depositResult)
         showBodyCyan("Gas cost for Dave deposit: ", gasUsed)
@@ -113,19 +113,19 @@ describe("TESTING USDI CONTRACT", async () => {
         let usdcBalance = await s.USDC.balanceOf(s.Dave.address)
         assert.equal(usdcBalance.toString(), s.Dave_USDC.sub(usdcAmount).toString(), "Dave deposited USDC tokens")
 
-        //some interest has accrued, USDi balance should be slightly higher than existingUSDi balance + USDC amount deposited 
+        //some interest has accrued, USDa balance should be slightly higher than existingUSDa balance + USDC amount deposited 
         await s.VaultController.calculateInterest()
         await mineBlock();
-        let usdiBalance = await s.USDI.balanceOf(s.Dave.address)
-        expect(usdiBalance).to.be.gt(startingUSDIAmount.add(usdcAmount.mul(1e12)))
+        let usdaBalance = await s.USDA.balanceOf(s.Dave.address)
+        expect(usdaBalance).to.be.gt(startingUSDAAmount.add(usdcAmount.mul(1e12)))
     });
 
     it("call deposit with amount == 0", async () => {
         //approve
-        await s.USDC.connect(s.Dave).approve(s.USDI.address, usdcAmount)
+        await s.USDC.connect(s.Dave).approve(s.USDA.address, usdcAmount)
         await mineBlock()
 
-        await expect(s.USDI.connect(s.Dave).deposit(0)).to.be.revertedWith("Cannot deposit 0")
+        await expect(s.USDA.connect(s.Dave).deposit(0)).to.be.revertedWith("Cannot deposit 0")
         await mineBlock()
     })
 
@@ -134,25 +134,25 @@ describe("TESTING USDI CONTRACT", async () => {
         assert.equal(balance.toString(), "0", "Eric holds no USDC")
 
         //approve
-        await s.USDC.connect(s.Eric).approve(s.USDI.address, utils.parseEther("500"))
+        await s.USDC.connect(s.Eric).approve(s.USDA.address, utils.parseEther("500"))
         await mineBlock()
 
-        await expect(s.USDI.connect(s.Eric).deposit(utils.parseEther("500"))).to.be.revertedWith("ERC20: transfer amount exceeds balance")
+        await expect(s.USDA.connect(s.Eric).deposit(utils.parseEther("500"))).to.be.revertedWith("ERC20: transfer amount exceeds balance")
         await mineBlock()
 
     })
 
-    it("redeem USDC for USDI", async () => {
+    it("redeem USDC for USDA", async () => {
         //check pauseable 
-        await s.USDI.connect(s.Frank).pause()
+        await s.USDA.connect(s.Frank).pause()
         await advanceBlockHeight(1)
-        await expect(s.USDI.connect(s.Dave).withdraw(usdcAmount)).to.be.revertedWith("Pausable: paused")
-        await s.USDI.connect(s.Frank).unpause()
+        await expect(s.USDA.connect(s.Dave).withdraw(usdcAmount)).to.be.revertedWith("Pausable: paused")
+        await s.USDA.connect(s.Frank).unpause()
         await advanceBlockHeight(1)
         const startingUSDCamount = await s.USDC.balanceOf(s.Dave.address)
         assert.equal(startingUSDCamount.toString(), s.Dave_USDC.sub(usdcAmount).toString(), "Starting USDC balance is correct")
 
-        const withdrawResult = await s.USDI.connect(s.Dave).withdraw(usdcAmount)
+        const withdrawResult = await s.USDA.connect(s.Dave).withdraw(usdcAmount)
         await advanceBlockHeight(1)
         const withdrawGas = await getGas(withdrawResult)
         showBodyCyan("Gas cost for Dave to withdraw: ", withdrawGas)
@@ -160,51 +160,51 @@ describe("TESTING USDI CONTRACT", async () => {
         let usdcBalance = await s.USDC.balanceOf(s.Dave.address)
         assert.equal(usdcBalance.toString(), s.Dave_USDC.toString(), "Dave redeemed all USDC tokens")
 
-        //Return Dave to his original amount of USDi holdings
-        let usdiBalance = await s.USDI.balanceOf(s.Dave.address)
-        //should end up with slightly more USDI than original due to interest 
-        expect(usdiBalance).to.be.gt(startingUSDIAmount)
+        //Return Dave to his original amount of USDa holdings
+        let usdaBalance = await s.USDA.balanceOf(s.Dave.address)
+        //should end up with slightly more USDA than original due to interest 
+        expect(usdaBalance).to.be.gt(startingUSDAAmount)
     });
 
-    it("Handles eronious withdrawl amounts, and USDi transfer", async () => {
-        let startingUSDIbalance = await s.USDI.balanceOf(s.Eric.address)
-        assert.equal(startingUSDIbalance.toString(), "0", "Eric does not hold any USDi")
+    it("Handles eronious withdrawl amounts, and USDa transfer", async () => {
+        let startingUSDAbalance = await s.USDA.balanceOf(s.Eric.address)
+        assert.equal(startingUSDAbalance.toString(), "0", "Eric does not hold any USDa")
 
         const smallAmount = utils.parseEther("1")
         const smallAmount_e6 = smallAmount.div(BN("1e12"))
         const tryAmount = smallAmount_e6.mul(5)
 
         await mineBlock()
-        const transferResult = await s.USDI.connect(s.Frank).transfer(s.Eric.address, smallAmount)
+        const transferResult = await s.USDA.connect(s.Frank).transfer(s.Eric.address, smallAmount)
         await mineBlock()
         const transferGas = await getGas(transferResult)
-        showBodyCyan("Gas cost to transfer USDi: ", transferGas)
+        showBodyCyan("Gas cost to transfer USDa: ", transferGas)
 
-        let balance = await s.USDI.balanceOf(s.Eric.address)
+        let balance = await s.USDA.balanceOf(s.Eric.address)
         assert.equal(balance.toString(), smallAmount.toString(), "Balance is correct")
 
         //Eric tries to withdraw way more than should be allowed
-        await expect(s.USDI.connect(s.Eric).withdraw(tryAmount)).to.be.revertedWith("insufficient funds")
+        await expect(s.USDA.connect(s.Eric).withdraw(tryAmount)).to.be.revertedWith("insufficient funds")
 
     })
 
     it("withdraw total reserves", async () => {
-        const usdiBalance = await s.USDI.balanceOf(s.Dave.address)
-        const reserve = await s.USDC.balanceOf(s.USDI.address)
+        const usdaBalance = await s.USDA.balanceOf(s.Dave.address)
+        const reserve = await s.USDC.balanceOf(s.USDA.address)
         const reserve_e18 = reserve.mul(BN("1e12"))
         let formatReserve = utils.formatEther(reserve_e18.toString())
 
         //Frank mints enough USDC to cover the withdrawl
-        await s.USDI.connect(s.Frank).mint(reserve)
+        await s.USDA.connect(s.Frank).mint(reserve)
         await mineBlock()
 
-        await s.USDI.connect(s.Frank).transfer(s.Dave.address, reserve_e18)
+        await s.USDA.connect(s.Frank).transfer(s.Dave.address, reserve_e18)
         await mineBlock()
 
         const usdcBalance = await s.USDC.balanceOf(s.Dave.address)
 
-        //const withdrawResult = await s.USDI.connect(s.Dave).withdraw(reserve)
-        const withdrawResult = await s.USDI.connect(s.Dave).withdrawAll()
+        //const withdrawResult = await s.USDA.connect(s.Dave).withdraw(reserve)
+        const withdrawResult = await s.USDA.connect(s.Dave).withdrawAll()
         await mineBlock()
         const withdrawGas = await getGas(withdrawResult)
         const withdrawArgs = await getArgs(withdrawResult)
@@ -213,48 +213,48 @@ describe("TESTING USDI CONTRACT", async () => {
 
         let ending_usdcBalance = await s.USDC.balanceOf(s.Dave.address)
         let formatUSDC = utils.formatEther(ending_usdcBalance.mul(BN("1e12")).toString())
-        let ending_usdiBalance = await s.USDI.balanceOf(s.Dave.address)
-        const end_reserve = await s.USDC.balanceOf(s.USDI.address)
+        let ending_usdaBalance = await s.USDA.balanceOf(s.Dave.address)
+        const end_reserve = await s.USDC.balanceOf(s.USDA.address)
         const end_reserve_e18 = reserve.mul(BN("1e12"))
         formatReserve = utils.formatEther(end_reserve_e18.toString())
 
         //verify things
-        //const expectedUSDIamount = usdiBalance.sub(reserve)
+        //const expectedUSDAamount = usdaBalance.sub(reserve)
         const expectedUSDCamount = usdcBalance.add(reserve)
         assert.equal(expectedUSDCamount.toString(), ending_usdcBalance.toString(), "Expected USDC balance is correct")
-        const expectedUSDIamount = usdiBalance.sub(reserve_e18)
-        const difference = ending_usdiBalance.sub(expectedUSDIamount)
+        const expectedUSDAamount = usdaBalance.sub(reserve_e18)
+        const difference = ending_usdaBalance.sub(expectedUSDAamount)
 
         assert.equal(end_reserve.toString(), "0", "reserve is empty")
 
         //cannot withdraw when reserve is empty
-        await expect(s.USDI.connect(s.Dave).withdraw(1)).to.be.reverted
-        await expect(s.USDI.connect(s.Dave).withdrawAll()).to.be.revertedWith("Reserve is empty")
+        await expect(s.USDA.connect(s.Dave).withdraw(1)).to.be.reverted
+        await expect(s.USDA.connect(s.Dave).withdrawAll()).to.be.revertedWith("Reserve is empty")
 
     })
     it("Anyone can donate USDC to the protocol", async () => {
         let balance = await s.USDC.balanceOf(s.Dave.address)
-        let reserve = await s.USDC.balanceOf(s.USDI.address)
+        let reserve = await s.USDC.balanceOf(s.USDA.address)
 
         assert.equal(reserve.toString(), "0", "reserve is 0, donations welcome :)")
 
         //todo check totalSupply and confirm interest rate changes
         //Dave approves and donates half of his USDC
-        await s.USDC.connect(s.Dave).approve(s.USDI.address, balance.div(2))
-        const donateResult = await s.USDI.connect(s.Dave).donate(balance.div(2))
+        await s.USDC.connect(s.Dave).approve(s.USDA.address, balance.div(2))
+        const donateResult = await s.USDA.connect(s.Dave).donate(balance.div(2))
         await advanceBlockHeight(1)
         const donateGas = await getGas(donateResult)
         showBodyCyan("Gas cost to donate: ", donateGas)
 
         let updatedBalance = await s.USDC.balanceOf(s.Dave.address)
-        let updatedReserve = await s.USDC.balanceOf(s.USDI.address)
+        let updatedReserve = await s.USDC.balanceOf(s.USDA.address)
 
         expect(updatedBalance).to.be.closeTo(updatedReserve, 100)//account for interest generation
     })
 
-    it("what happens when someone simply transfers ether to USDi contract? ", async () => {
+    it("what happens when someone simply transfers ether to USDa contract? ", async () => {
         let tx = {
-            to: s.USDI.address,
+            to: s.USDA.address,
             value: utils.parseEther("1")
         }
         await expect(s.Dave.sendTransaction(tx)).to.be.reverted
@@ -262,32 +262,32 @@ describe("TESTING USDI CONTRACT", async () => {
     })
     
     /**
-     * when sending USDC to USDi contract accidently, the reserve ratio responds, and the USDC goes to the reserve
+     * when sending USDC to USDa contract accidently, the reserve ratio responds, and the USDC goes to the reserve
      * the only way for the USDC to leave the reserve is if the reserve is sufficiently depleated
      * 
-     * donations to the USDi protocol should ideally go through the donate function
+     * donations to the USDa protocol should ideally go through the donate function
      * 
-     * eronious donations can be rebased into the the custody of all USDi holders by governance via the donateReserve() function
+     * eronious donations can be rebased into the the custody of all USDa holders by governance via the donateReserve() function
      * see ../isolated/noReserve for testing of this scenario
      */
-    it("what happens when someone accidently transfers USDC to the USDi contract? ", async () => {
-        const startingReserve = await s.USDC.balanceOf(s.USDI.address)
-        const startingReserveRatio = await s.USDI.reserveRatio()
-        const startingSupply = await s.USDI.totalSupply()
+    it("what happens when someone accidently transfers USDC to the USDa contract? ", async () => {
+        const startingReserve = await s.USDC.balanceOf(s.USDA.address)
+        const startingReserveRatio = await s.USDA.reserveRatio()
+        const startingSupply = await s.USDA.totalSupply()
 
-        //eroniouisly transfer USDC to USDi contract
+        //eroniouisly transfer USDC to USDa contract
         const smallAmount = utils.parseEther("1")
         const smallAmount_e6 = smallAmount.div(BN("1e12"))//1 USDC = 1,000,000
 
         await mineBlock()
-        await s.USDC.connect(s.Dave).transfer(s.USDI.address, smallAmount_e6)
+        await s.USDC.connect(s.Dave).transfer(s.USDA.address, smallAmount_e6)
         await mineBlock()
 
-        let reserve = await s.USDC.balanceOf(s.USDI.address)
-        let reserveRatio = await s.USDI.reserveRatio()
-        let totalSupply = await s.USDI.totalSupply()
+        let reserve = await s.USDC.balanceOf(s.USDA.address)
+        let reserveRatio = await s.USDA.reserveRatio()
+        let totalSupply = await s.USDA.totalSupply()
 
-        assert.equal(startingSupply.toString(), totalSupply.toString(), "Total supply has not changed, no USDi minted")
+        assert.equal(startingSupply.toString(), totalSupply.toString(), "Total supply has not changed, no USDa minted")
         expect(reserve).to.be.gt(startingReserve)//USDC received and is in the reserve
         expect(reserveRatio).to.be.gt(startingReserveRatio)//reserve ratio increased
     })

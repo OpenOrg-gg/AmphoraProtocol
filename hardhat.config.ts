@@ -69,11 +69,35 @@ const config: HardhatUserConfig = {
     localhost: {
       url: "http://localhost:8545",
     },
+    optimism: {
+      url: process.env.OPTIMISM_URL ? process.env.OPTIMISM_URL : zaddr,
+      accounts: [
+        process.env.OPTIMISM_PRIVATE_KEY
+          ? process.env.OPTIMISM_PRIVATE_KEY
+          : zaddr,
+      ],
+      chainId: 10, // OP's id
+    },
   },
   solidity: {
     compilers: [
       {
         version: "0.8.9",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+            details: {
+              orderLiterals: true,
+              deduplicate: true,
+              cse: true,
+              yul: true,
+            },
+          },
+        },
+      },
+      {
+        version: "0.6.12",
         settings: {
           optimizer: {
             enabled: true,
@@ -124,9 +148,10 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      mainnet: process.env.API_KEY!,//"6I23UXVXWXB4RM8QTDWKSVIWZF7V1ZDMNU",
+      mainnet: process.env.API_KEY!,
       ropsten: process.env.API_KEY!,
       polygon: process.env.ETHERSCAN_POLYGON_KEY!,
+      optimism: process.env.ETHERSCAN_OPTIMISM_KEY!,
     },
   },
   typechain: {

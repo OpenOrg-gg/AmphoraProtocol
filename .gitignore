@@ -1,4 +1,9 @@
 node_modules
+proposals
+scripts
+.vscode
+.gitlab-ci.yml
+.gitpod.yml
 
 #Hardhat files
 cache

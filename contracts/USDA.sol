@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "./IUSDI.sol";
+import "./IUSDA.sol";
 
 import "./token/UFragments.sol";
 import "./lending/Vault.sol";
@@ -12,10 +12,10 @@ import "./_external/openzeppelin/PausableUpgradeable.sol";
 
 import "hardhat/console.sol";
 
-/// @title USDI token contract
-/// @notice handles all minting/burning of usdi
+/// @title USDA token contract
+/// @notice handles all minting/burning of usda
 /// @dev extends UFragments
-contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, ExponentialNoError {
+contract USDA is Initializable, PausableUpgradeable, UFragments, IUSDA, ExponentialNoError {
   IERC20 public _reserve;
   IVaultController public _VaultController;
 
@@ -40,15 +40,15 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
   }
 
   /// @notice initializer for contract
-  /// @param reserveAddr the address of USDC
+  /// @param reserveAddr the address of SUSD
   /// @dev consider adding decimals?
   function initialize(address reserveAddr) public override initializer {
-    __UFragments_init("USDI Token", "USDI");
+    __UFragments_init("USDA Token", "USDA");
     __Pausable_init();
     _reserve = IERC20(reserveAddr);
   }
 
-  ///@notice sets the pauser for both USDI and VaultController
+  ///@notice sets the pauser for both USDA and VaultController
   ///@notice the pauser is a separate role from the owner
   function setPauser(address pauser_) external override onlyOwner {
     _pauser = pauser_;
@@ -64,13 +64,13 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
     _unpause();
   }
 
-  ///@notice gets the pauser for both USDI and VaultController
+  ///@notice gets the pauser for both USDA and VaultController
   function pauser() public view returns (address) {
     return _pauser;
   }
 
-  ///@notice gets the owner of the USDI contract
-  function owner() public view override(IUSDI, OwnableUpgradeable) returns (address) {
+  ///@notice gets the owner of the USDA contract
+  function owner() public view override(IUSDA, OwnableUpgradeable) returns (address) {
     return super.owner();
   }
 
@@ -92,7 +92,7 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
     return super.decimals();
   }
 
-  /// @notice getter for address of the reserve currency, or usdc
+  /// @notice getter for address of the reserve currency, or SUSD
   /// @return decimals for of reserve currency
   function reserveAddress() public view override returns (address) {
     return address(_reserve);
@@ -104,36 +104,36 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
     return address(_VaultController);
   }
 
-  /// @notice set the VaultController addr so that vault_master may mint/burn USDi without restriction
+  /// @notice set the VaultController addr so that vault_master may mint/burn USDa without restriction
   /// @param vault_master_address address of vault master
   function setVaultController(address vault_master_address) external override onlyOwner {
     _VaultController = IVaultController(vault_master_address);
   }
 
-  /// @notice deposit USDC to mint USDi
-  /// @dev caller should obtain 1e12 USDi for each USDC
-  /// the calculations for deposit mimic the calculations done by mint in the ampleforth contract, simply with the usdc transfer
-  /// "fragments" are the units that we see, so 1000 fragments == 1000 USDi
+  /// @notice deposit SUSD to mint USDa
+  /// @dev caller should obtain 1e12 USDa for each SUSD
+  /// the calculations for deposit mimic the calculations done by mint in the ampleforth contract, simply with the SUSD transfer
+  /// "fragments" are the units that we see, so 1000 fragments == 1000 USDa
   /// "gons" are the internal accounting unit, used to keep scale.
   /// we use the variable _gonsPerFragment in order to convert between the two
   /// try dimensional analysis when doing the math in order to verify units are correct
-  /// @param usdc_amount amount of USDC to deposit
-  function deposit(uint256 usdc_amount) external override {
-    _deposit(usdc_amount, _msgSender());
+  /// @param susd_amount amount of SUSD to deposit
+  function deposit(uint256 susd_amount) external override {
+    _deposit(susd_amount, _msgSender());
   }
 
-  function depositTo(uint256 usdc_amount, address target) external override {
-    _deposit(usdc_amount, target);
+  function depositTo(uint256 susd_amount, address target) external override {
+    _deposit(susd_amount, target);
   }
 
-  function _deposit(uint256 usdc_amount, address target) internal paysInterest whenNotPaused {
-    // scale the usdc_amount to the usdi decimal amount, aka 1e18. since usdc is 6 decimals, we multiply by 1e12
-    uint256 amount = usdc_amount * 1e12;
+  function _deposit(uint256 susd_amount, address target) internal paysInterest whenNotPaused {
+    // scale the susd_amount to the usda decimal amount, aka 1e18. since SUSD is 6 decimals, we multiply by 1e12
+    uint256 amount = susd_amount * 1e12;
     require(amount > 0, "Cannot deposit 0");
     // check allowance and ensure transfer success
     uint256 allowance = _reserve.allowance(_msgSender(), address(this));
-    require(allowance >= usdc_amount, "Insufficient Allowance");
-    require(_reserve.transferFrom(_msgSender(), address(this), usdc_amount), "transfer failed");
+    require(allowance >= susd_amount, "Insufficient Allowance");
+    require(_reserve.transferFrom(_msgSender(), address(this), susd_amount), "transfer failed");
     // the gonbalances of the sender is in gons, therefore we must multiply the deposit amount, which is in fragments, by gonsperfragment
     _gonBalances[target] = _gonBalances[target] + amount * _gonsPerFragment;
     // total supply is in fragments, and so we add amount
@@ -145,32 +145,32 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
     emit Deposit(target, amount);
   }
 
-  /// @notice withdraw USDC by burning USDi
-  /// caller should obtain 1 USDC for every 1e12 USDi
-  /// @param usdc_amount amount of USDC to withdraw
-  function withdraw(uint256 usdc_amount) external override {
-    _withdraw(usdc_amount, _msgSender());
+  /// @notice withdraw SUSD by burning USDa
+  /// caller should obtain 1 SUSD for every 1e12 USDa
+  /// @param susd_amount amount of SUSD to withdraw
+  function withdraw(uint256 susd_amount) external override {
+    _withdraw(susd_amount, _msgSender());
   }
 
-  ///@notice withdraw USDC to a specific address by burning USDi from the caller
-  /// target should obtain 1 USDC for every 1e12 USDi burned from the caller
-  /// @param usdc_amount amount of USDC to withdraw
-  /// @param target address to receive the USDC
-  function withdrawTo(uint256 usdc_amount, address target) external override {
-    _withdraw(usdc_amount, target);
+  ///@notice withdraw SUSD to a specific address by burning USDa from the caller
+  /// target should obtain 1 SUSD for every 1e12 USDa burned from the caller
+  /// @param susd_amount amount of SUSD to withdraw
+  /// @param target address to receive the SUSD
+  function withdrawTo(uint256 susd_amount, address target) external override {
+    _withdraw(susd_amount, target);
   }
 
-  ///@notice business logic to withdraw USDC and burn USDi from the caller
-  function _withdraw(uint256 usdc_amount, address target) internal paysInterest whenNotPaused {
-    // scale the usdc_amount to the USDi decimal amount, aka 1e18
-    uint256 amount = usdc_amount * 1e12;
+  ///@notice business logic to withdraw SUSD and burn USDa from the caller
+  function _withdraw(uint256 susd_amount, address target) internal paysInterest whenNotPaused {
+    // scale the susd_amount to the USDa decimal amount, aka 1e18
+    uint256 amount = susd_amount * 1e12;
     // check balances all around
     require(amount <= this.balanceOf(_msgSender()), "insufficient funds");
     require(amount > 0, "Cannot withdraw 0");
     uint256 balance = _reserve.balanceOf(address(this));
-    require(balance >= usdc_amount, "Insufficient Reserve in Bank");
+    require(balance >= susd_amount, "Insufficient Reserve in Bank");
     // ensure transfer success
-    require(_reserve.transfer(target, usdc_amount), "transfer failed");
+    require(_reserve.transfer(target, susd_amount), "transfer failed");
     // modify the gonbalances of the sender, subtracting the amount of gons, therefore amount*gonsperfragment
     _gonBalances[_msgSender()] = _gonBalances[_msgSender()] - amount * _gonsPerFragment;
     // modify totalSupply and totalGons
@@ -181,33 +181,33 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
     emit Withdraw(target, amount);
   }
 
-  /// @notice withdraw USDC by burning USDi
-  /// caller should obtain 1 USDC for every 1e12 USDi
+  /// @notice withdraw SUSD by burning USDa
+  /// caller should obtain 1 SUSD for every 1e12 USDa
   /// this function is effectively just withdraw, but we calculate the amount for the sender
   function withdrawAll() external override {
     _withdrawAll(_msgSender());
   }
 
-  /// @notice withdraw USDC by burning USDi
-  /// @param target should obtain 1 USDC for every 1e12 USDi burned from caller
+  /// @notice withdraw SUSD by burning USDa
+  /// @param target should obtain 1 SUSD for every 1e12 USDa burned from caller
   /// this function is effectively just withdraw, but we calculate the amount for the target
   function withdrawAllTo(address target) external override {
     _withdrawAll(target);
   }
 
   /// @notice business logic for withdrawAll
-  /// @param target should obtain 1 USDC for every 1e12 USDi burned from caller
+  /// @param target should obtain 1 SUSD for every 1e12 USDa burned from caller
   /// this function is effectively just withdraw, but we calculate the amount for the target
   function _withdrawAll(address target) internal paysInterest whenNotPaused {
     uint256 reserve = _reserve.balanceOf(address(this));
     require(reserve != 0, "Reserve is empty");
-    uint256 usdc_amount = (this.balanceOf(_msgSender())) / 1e12;
-    //user's USDI value is more than reserve
-    if (usdc_amount > reserve) {
-      usdc_amount = reserve;
+    uint256 susd_amount = (this.balanceOf(_msgSender())) / 1e12;
+    //user's USDA value is more than reserve
+    if (susd_amount > reserve) {
+      susd_amount = reserve;
     }
-    uint256 amount = usdc_amount * 1e12;
-    require(_reserve.transfer(target, usdc_amount), "transfer failed");
+    uint256 amount = susd_amount * 1e12;
+    require(_reserve.transfer(target, susd_amount), "transfer failed");
     // see comments in the withdraw function for an explaination of this math
     _gonBalances[_msgSender()] = _gonBalances[_msgSender()] - (amount * _gonsPerFragment);
     _totalSupply = _totalSupply - amount;
@@ -217,11 +217,11 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
     emit Withdraw(target, amount);
   }
 
-  /// @notice admin function to mint USDi
-  /// @param usdc_amount the amount of USDi to mint, denominated in USDC
-  function mint(uint256 usdc_amount) external override paysInterest onlyOwner {
-    require(usdc_amount != 0, "Cannot mint 0");
-    uint256 amount = usdc_amount * 1e12;
+  /// @notice admin function to mint USDa
+  /// @param susd_amount the amount of USDa to mint, denominated in SUSD
+  function mint(uint256 susd_amount) external override paysInterest onlyOwner {
+    require(susd_amount != 0, "Cannot mint 0");
+    uint256 amount = susd_amount * 1e12;
     // see comments in the deposit function for an explaination of this math
     _gonBalances[_msgSender()] = _gonBalances[_msgSender()] + amount * _gonsPerFragment;
     _totalSupply = _totalSupply + amount;
@@ -231,11 +231,11 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
     emit Mint(_msgSender(), amount);
   }
 
-  /// @notice admin function to burn USDi
-  /// @param usdc_amount the amount of USDi to burn, denominated in USDC
-  function burn(uint256 usdc_amount) external override paysInterest onlyOwner {
-    require(usdc_amount != 0, "Cannot burn 0");
-    uint256 amount = usdc_amount * 1e12;
+  /// @notice admin function to burn USDa
+  /// @param susd_amount the amount of USDa to burn, denominated in SUSD
+  function burn(uint256 susd_amount) external override paysInterest onlyOwner {
+    require(susd_amount != 0, "Cannot burn 0");
+    uint256 amount = susd_amount * 1e12;
     // see comments in the deposit function for an explaination of this math
     _gonBalances[_msgSender()] = _gonBalances[_msgSender()] - amount * _gonsPerFragment;
     _totalSupply = _totalSupply - amount;
@@ -245,31 +245,31 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
     emit Burn(_msgSender(), amount);
   }
 
-  /// @notice donates usdc to the protocol reserve
-  /// @param usdc_amount the amount of USDC to donate
-  function donate(uint256 usdc_amount) external override paysInterest whenNotPaused {
-    uint256 amount = usdc_amount * 1e12;
+  /// @notice donates SUSD to the protocol reserve
+  /// @param susd_amount the amount of SUSD to donate
+  function donate(uint256 susd_amount) external override paysInterest whenNotPaused {
+    uint256 amount = susd_amount * 1e12;
     require(amount > 0, "Cannot deposit 0");
     uint256 allowance = _reserve.allowance(_msgSender(), address(this));
-    require(allowance >= usdc_amount, "Insufficient Allowance");
-    require(_reserve.transferFrom(_msgSender(), address(this), usdc_amount), "transfer failed");
+    require(allowance >= susd_amount, "Insufficient Allowance");
+    require(_reserve.transferFrom(_msgSender(), address(this), susd_amount), "transfer failed");
     _donation(amount);
   }
 
-  /// @notice donates any USDC held by this contract to the USDi holders
-  /// @notice accounts for any USDC that may have been sent here accidently
-  /// @notice without this, any USDC sent to the contract could mess up the reserve ratio
+  /// @notice donates any SUSD held by this contract to the USDa holders
+  /// @notice accounts for any SUSD that may have been sent here accidently
+  /// @notice without this, any SUSD sent to the contract could mess up the reserve ratio
   function donateReserve() external override onlyOwner whenNotPaused {
-    uint256 totalUSDC = (_reserve.balanceOf(address(this))) * 1e12;
+    uint256 totalSUSD = (_reserve.balanceOf(address(this))) * 1e12;
     uint256 totalLiability = truncate(_VaultController.totalBaseLiability() * _VaultController.interestFactor());
-    require((totalUSDC + totalLiability) > _totalSupply, "No extra reserve");
+    require((totalSUSD + totalLiability) > _totalSupply, "No extra reserve");
 
-    _donation((totalUSDC + totalLiability) - _totalSupply);
+    _donation((totalSUSD + totalLiability) - _totalSupply);
   }
 
   /// @notice function for the vaultController to mint
-  /// @param target whom to mint the USDi to
-  /// @param amount the amount of USDi to mint
+  /// @param target whom to mint the USDa to
+  /// @param amount the amount of USDa to mint
   function vaultControllerMint(address target, uint256 amount) external override onlyVaultController {
     // see comments in the deposit function for an explaination of this math
     _gonBalances[target] = _gonBalances[target] + amount * _gonsPerFragment;
@@ -280,10 +280,10 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
   }
 
   /// @notice function for the vaultController to burn
-  /// @param target whom to burn the USDi from
-  /// @param amount the amount of USDi to burn
+  /// @param target whom to burn the USDa from
+  /// @param amount the amount of USDa to burn
   function vaultControllerBurn(address target, uint256 amount) external override onlyVaultController {
-    require(_gonBalances[target] > (amount * _gonsPerFragment), "USDI: not enough balance");
+    require(_gonBalances[target] > (amount * _gonsPerFragment), "USDA: not enough balance");
     // see comments in the withdraw function for an explaination of this math
     _gonBalances[target] = _gonBalances[target] - amount * _gonsPerFragment;
     _totalSupply = _totalSupply - amount;
@@ -292,22 +292,22 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
     emit Burn(target, amount);
   }
 
-  /// @notice Allows VaultController to send USDC from the reserve
-  /// @param target whom to burn the USDi from
-  /// @param usdc_amount the amount of USDC to send
-  function vaultControllerTransfer(address target, uint256 usdc_amount) external override onlyVaultController {
+  /// @notice Allows VaultController to send SUSD from the reserve
+  /// @param target whom to burn the USDa from
+  /// @param susd_amount the amount of SUSD to send
+  function vaultControllerTransfer(address target, uint256 susd_amount) external override onlyVaultController {
     // ensure transfer success
-    require(_reserve.transfer(target, usdc_amount), "transfer failed");
+    require(_reserve.transfer(target, susd_amount), "transfer failed");
   }
 
-  /// @notice function for the vaultController to scale all USDi balances
-  /// @param amount amount of USDi (e18) to donate
+  /// @notice function for the vaultController to scale all USDa balances
+  /// @param amount amount of USDa (e18) to donate
   function vaultControllerDonate(uint256 amount) external override onlyVaultController {
     _donation(amount);
   }
 
-  /// @notice function for distributing the donation to all USDi holders
-  /// @param amount amount of USDi to donate
+  /// @notice function for distributing the donation to all USDa holders
+  /// @param amount amount of USDa to donate
   function _donation(uint256 amount) internal {
     _totalSupply = _totalSupply + amount;
     if (_totalSupply > MAX_SUPPLY) {
@@ -318,7 +318,7 @@ contract USDI is Initializable, PausableUpgradeable, UFragments, IUSDI, Exponent
   }
 
   /// @notice get reserve ratio
-  /// @return e18_reserve_ratio USDi reserve ratio
+  /// @return e18_reserve_ratio USDa reserve ratio
   function reserveRatio() external view override returns (uint192 e18_reserve_ratio) {
     e18_reserve_ratio = safeu192(((_reserve.balanceOf(address(this)) * expScale) / _totalSupply) * 1e12);
   }

@@ -35,7 +35,7 @@ export const payInterestMath = async (interestFactor: BigNumber) => {
 
     let timeDifference = currentTime - latestInterestTime.toNumber() + 1 //new block must have time ++1
 
-    const reserveRatio = await s.USDI.reserveRatio()//todo - calculate
+    const reserveRatio = await s.USDA.reserveRatio()//todo - calculate
     const curve = await s.Curve.getValueAt(nullAddr, reserveRatio)//todo - calculate
 
     let calculation = BN(timeDifference).mul(BN("1e18").mul(curve))//correct step 1
@@ -65,18 +65,18 @@ export const calculateBalance = async (interestFactor: BigNumber, user: SignerWi
     const protocolAmount = await truncate((valueAfter.sub(valueBefore)).mul(protocolFee))
 
     const donationAmount = valueAfter.sub(valueBefore).sub(protocolAmount)//wrong
-    const currentTotalSupply = await s.USDI.totalSupply()
+    const currentTotalSupply = await s.USDA.totalSupply()
     let newSupply = currentTotalSupply.add(donationAmount)
 
     //totalGons
-    const totalGons = await s.USDI._totalGons()
+    const totalGons = await s.USDA._totalGons()
 
     //gpf
     const gpf = totalGons.div(newSupply)
 
     //calculate balance 
     //get gon balance - calculate? 
-    const gonBalance = await s.USDI.scaledBalanceOf(user.address)
+    const gonBalance = await s.USDA.scaledBalanceOf(user.address)
 
     const expectedBalance = gonBalance.div(gpf)
     return expectedBalance
@@ -100,11 +100,11 @@ export const changeInBalance = async (interestFactor: BigNumber, amount: BigNumb
     const protocolAmount = await truncate((valueAfter.sub(valueBefore)).mul(protocolFee))
 
     const donationAmount = valueAfter.sub(valueBefore).sub(protocolAmount)//wrong
-    const currentTotalSupply = await s.USDI.totalSupply()
+    const currentTotalSupply = await s.USDA.totalSupply()
     let newSupply = currentTotalSupply.add(donationAmount)
 
     //totalGons
-    const totalGons = await s.USDI._totalGons()
+    const totalGons = await s.USDA._totalGons()
 
     //gpf
     const startingGPF = totalGons.div(currentTotalSupply)
@@ -112,7 +112,7 @@ export const changeInBalance = async (interestFactor: BigNumber, amount: BigNumb
 
     //calculate balance 
     //get gon balance - calculate? 
-    const gonBalance = amount.mul(gpf)           //await s.USDI.scaledBalanceOf(user.address)
+    const gonBalance = amount.mul(gpf)           //await s.USDA.scaledBalanceOf(user.address)
 
     const expectedBalance = gonBalance.div(gpf)
     return expectedBalance
@@ -151,7 +151,7 @@ export const calculatetokensToLiquidate = async (vault: IVault, asset: string, t
     return t2l
 }
 
-export const calculateUSDI2repurchase = async (asset: string, tokens2liquidate: BigNumber) => {
+export const calculateUSDA2repurchase = async (asset: string, tokens2liquidate: BigNumber) => {
     const rawPrice = await s.Oracle.getLivePrice(asset)
 
     const badFillPrice = await truncate(rawPrice.mul((BN("1e18").sub(s.LiquidationIncentive))))

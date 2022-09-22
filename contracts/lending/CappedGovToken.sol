@@ -44,7 +44,6 @@ contract CappedGovToken is Initializable, OwnableUpgradeable, ERC20Upgradeable {
     _votingVaultController = VotingVaultController(votingVaultController_);
   }
 
-  /// @notice 18 decimal erc20 spec should have been written into the fucking standard
   function decimals() public pure override returns (uint8) {
     return 18;
   }

@@ -2,7 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "ethers";
 import fs from "fs";
 import {
-  USDI,
+  USDA,
   IERC20,
   IVOTE,
   VaultController,
@@ -16,7 +16,7 @@ import {
   IOracleMaster,
   IVaultController,
   ProxyAdmin,
-  IUSDI,
+  IUSDA,
   ICurveMaster,
   ProxyAdmin__factory,
   VaultController__factory,
@@ -24,7 +24,7 @@ import {
   AnchoredViewRelay__factory,
   CurveMaster__factory,
   TransparentUpgradeableProxy__factory,
-  USDI__factory,
+  USDA__factory,
   IERC20__factory,
   IVOTE__factory,
   ThreeLines0_100__factory,
@@ -53,16 +53,48 @@ export interface DeploymentInfo {
   USDC_ETH_CL?: string;
   USDC_UNI_CL?: string;
   USDC_WBTC_CL?: string;
+  USDC_AAVE_CL?: string;
+  USDC_CRV_CL?: string;
+  USDC_DAI_CL?: string;
+  USDC_DYDX_CL?: string;
+  USDC_FXS_CL?: string;
+  USDC_OP_CL?: string;
+  USDC_PERP_CL?: string;
+  USDC_SNX_CL?: string;
+  USDC_USDC_CL?: string;
+  USDC_USDT_CL?: string;
   USDC_ETH_POOL?: string;
   USDC_UNI_POOL?: string;
   USDC_WBTC_POOL?: string;
-  USDI?: string;
+  USDC_AAVE_POOL?: string;
+  USDC_CRV_POOL?: string;
+  USDC_DAI_POOL?: string;
+  USDC_DYDX_POOL?: string;
+  USDC_FXS_POOL?: string;
+  USDC_LINK_POOL?: string;
+  USDC_OP_POOL?: string;
+  USDC_PERP_POOL?: string;
+  USDC_SNX_POOL?: string;
+  USDC_USDT_POOL?: string;
+  USDC_USDC_POOL?: string;
+  USDA?: string;
   ProxyAdmin?: string;
   VaultController?: string;
   Oracle?: string;
   EthOracle?: string;
   UniOracle?: string;
   WBTCOracle?: string;
+  AAVEOracle?: string;
+  CRVOracle?: string;
+  DAIOracle?: string;
+  DYDXOracle?: string;
+  FXSOracle?: string;
+  LINKOracle?: string;
+  OPOracle?: string;
+  PERPOracle?: string;
+  SNXOracle?: string;
+  USDTOracle?: string;
+  USDCOracle?: string;
   Curve?: string;
   ThreeLines?: string;
 
@@ -74,8 +106,19 @@ export interface DeploymentInfo {
 }
 
 export class Deployment {
-  USDI!: USDI;
+  USDA!: USDA;
+  SUSD!: IERC20;
   USDC!: IERC20;
+  USDT!: IERC20;
+  AAVE!: IERC20;
+  CRV!: IERC20;
+  DAI!: IERC20;
+  DYDX!: IERC20;
+  FXS!: IERC20;
+  LINK!: IERC20;
+  OP!: IERC20;
+  PERP!: IERC20;
+  SNX!: IERC20;
   UNI!: IVOTE;
   WETH!: IERC20;
   WBTC!: IERC20;
@@ -88,6 +131,17 @@ export class Deployment {
   EthOracle!: IOracleRelay;
   UniOracle!: IOracleRelay;
   WBTCOracle!: IOracleRelay;
+  AAVEOracle!: IOracleRelay;
+  CRVOracle!: IOracleRelay;
+  DAIOracle!: IOracleRelay;
+  DYDXOracle!: IOracleRelay;
+  FXSOracle!: IOracleRelay;
+  LINKOracle!: IOracleRelay;
+  OPOracle!: IOracleRelay;
+  PERPOracle!: IOracleRelay;
+  SNXOracle!: IOracleRelay;
+  USDTOracle!: IOracleRelay;
+  USDCOracle!: IOracleRelay;
 
   Curve!: CurveMaster;
   ThreeLines!: ThreeLines0_100;
@@ -111,12 +165,23 @@ export class Deployment {
     await this.ensureExternal();
     await this.ensureProxyAdmin();
     await this.ensureVaultController();
-    await this.ensureUSDI();
+    await this.ensureUSDA();
     await this.ensureCurve();
     await this.ensureOracle();
     await this.ensureEthOracle();
-    await this.ensureUniOracle();
+    //await this.ensureUniOracle();
     await this.ensureWBTCOracle();
+    //await this.ensureAAVEOracle();
+    await this.ensureCRVOracle();
+    await this.ensureDAIOracle();
+    //await this.ensureDYDXOracle();
+    //await this.ensureFXSOracle();
+    //await this.ensureLINKOracle();
+    await this.ensureOPOracle();
+    //await this.ensurePERPOracle();
+    await this.ensureSNXOracle();
+    await this.ensureUSDTOracle();
+    await this.ensureUSDCOracle();
     console.log(this.Info);
     await this.ensureCharlie();
   }
@@ -275,7 +340,7 @@ export class Deployment {
       if (cl && pool) {
         this.EthOracle = await new AnchoredViewRelay__factory(
           this.deployer
-        ).deploy(pool.address, cl.address, 20, 100);
+        ).deploy(cl.address, cl.address, 20, 100);
         await this.EthOracle.deployed();
       } else {
         this.EthOracle = cl ? cl : pool!;
@@ -300,9 +365,9 @@ export class Deployment {
       console.log("registering eth into vault controller");
       let t = await this.VaultController.registerErc20(
         this.WETH.address,
-        BN("85e16"),
+        BN("80e16"),
         this.WETH.address,
-        BN("5e16")
+        BN("10e16")
       );
       await t.wait();
     }
@@ -342,7 +407,7 @@ export class Deployment {
         await pool.deployed();
         this.WBTCOracle = await new AnchoredViewRelay__factory(
           this.deployer
-        ).deploy(pool.address, cl.address, 20, 100);
+        ).deploy(cl.address, cl.address, 20, 100);
       } else {
         this.WBTCOracle = cl ? cl : pool!;
       }
@@ -406,7 +471,7 @@ export class Deployment {
         await pool.deployed();
         this.UniOracle = await new AnchoredViewRelay__factory(
           this.deployer
-        ).deploy(pool.address, cl.address, 40, 100);
+        ).deploy(cl.address, cl.address, 40, 100);
       } else {
         this.UniOracle = cl ? cl : pool!;
       }
@@ -436,51 +501,691 @@ export class Deployment {
     }
   }
 
-  async ensureUSDI() {
-    if (this.Info.USDI != undefined) {
-      this.USDI = new USDI__factory(this.deployer).attach(this.Info.USDI);
-      console.log(`found USDI at ${this.Info.USDI}`);
-    } else {
-      const uUSDI = await new USDI__factory(this.deployer).deploy();
-      await uUSDI.deployed();
-      console.log("USDI implementation address: ", uUSDI.address);
-      //USDI proxy
-      const USDI = await new TransparentUpgradeableProxy__factory(
+  async ensureAAVEOracle() {
+    if (this.Info.AAVEOracle != undefined) {
+      this.AAVEOracle = IOracleRelay__factory.connect(
+        this.Info.AAVEOracle,
         this.deployer
-      ).deploy(uUSDI.address, this.ProxyAdmin.address, "0x");
-      await USDI.deployed();
-      console.log("USDI proxy address: ", USDI.address);
-      //attach
-      this.USDI = new USDI__factory(this.deployer).attach(USDI.address);
-      let t = await this.USDI.initialize(this.USDC.address);
-      await t.wait();
-      console.log("USDI initialized: ", this.USDI.address);
-      this.Info.USDI = this.USDI.address;
+      );
+      console.log(`found AAVEOracle at ${this.Info.AAVEOracle}`);
+    } else {
+      console.log("deploying new AAVE oracle");
+      let cl = undefined;
+      let pool = undefined;
+      if (this.Info.USDC_AAVE_CL) {
+        cl = await new ChainlinkOracleRelay__factory(this.deployer).deploy(
+          this.Info.USDC_AAVE_CL, //pool_address
+          BN("1e10"), //mul
+          BN("1") //div
+        );
+        await cl.deployed();
+      }
+      if (this.Info.USDC_AAVE_POOL) {
+        pool = await new UniswapV3OracleRelay__factory(this.deployer).deploy(
+          60 * 60 * 4,
+          this.Info.USDC_AAVE_POOL, //pool_address
+          false, //quote_token_is_token0
+          BN("1e12"), //mul
+          BN("1") //div
+        );
+        await pool.deployed();
+      }
+      if (cl && pool) {
+        await cl.deployed();
+        await pool.deployed();
+        this.AAVEOracle = await new AnchoredViewRelay__factory(
+          this.deployer
+        ).deploy(cl.address, cl.address, 40, 100);
+      } else {
+        this.AAVEOracle = cl ? cl : pool!;
+      }
+      await this.AAVEOracle.deployed();
+      this.Info.AAVEOracle = this.AAVEOracle.address;
     }
     if (
-      (await this.USDI.connect(this.deployer).getVaultController()) !=
+      (await this.Oracle._relays(this.AAVE.address)) != this.AAVEOracle.address
+    ) {
+      let r2 = await this.Oracle.setRelay(
+        this.AAVE.address,
+        this.AAVEOracle.address
+      );
+      await r2.wait();
+    }
+    if (
+      (await this.VaultController._tokenAddress_tokenId(this.AAVE.address)).eq(0)
+    ) {
+      console.log("registering AAVE into vault controller");
+      let t = await this.VaultController.registerErc20(
+        this.AAVE.address,
+        BN("25e16"),
+        this.AAVE.address,
+        BN("15e16")
+      );
+      await t.wait();
+    }
+  }
+
+  async ensureCRVOracle() {
+    if (this.Info.CRVOracle != undefined) {
+      this.CRVOracle = IOracleRelay__factory.connect(
+        this.Info.CRVOracle,
+        this.deployer
+      );
+      console.log(`found CRVOracle at ${this.Info.CRVOracle}`);
+    } else {
+      console.log("deploying new CRV oracle");
+      let cl = undefined;
+      let pool = undefined;
+      if (this.Info.USDC_CRV_CL) {
+        cl = await new ChainlinkOracleRelay__factory(this.deployer).deploy(
+          this.Info.USDC_CRV_CL, //pool_address
+          BN("1e10"), //mul
+          BN("1") //div
+        );
+        await cl.deployed();
+      }
+      if (this.Info.USDC_CRV_POOL) {
+        pool = await new UniswapV3OracleRelay__factory(this.deployer).deploy(
+          60 * 60 * 4,
+          this.Info.USDC_CRV_POOL, //pool_address
+          false, //quote_token_is_token0
+          BN("1e12"), //mul
+          BN("1") //div
+        );
+        await pool.deployed();
+      }
+      if (cl && pool) {
+        await cl.deployed();
+        await pool.deployed();
+        this.CRVOracle = await new AnchoredViewRelay__factory(
+          this.deployer
+        ).deploy(cl.address, cl.address, 40, 100);
+      } else {
+        this.CRVOracle = cl ? cl : pool!;
+      }
+      await this.CRVOracle.deployed();
+      this.Info.CRVOracle = this.CRVOracle.address;
+    }
+    if (
+      (await this.Oracle._relays(this.CRV.address)) != this.CRVOracle.address
+    ) {
+      let r2 = await this.Oracle.setRelay(
+        this.CRV.address,
+        this.CRVOracle.address
+      );
+      await r2.wait();
+    }
+    if (
+      (await this.VaultController._tokenAddress_tokenId(this.CRV.address)).eq(0)
+    ) {
+      console.log("registering CRV into vault controller");
+      let t = await this.VaultController.registerErc20(
+        this.CRV.address,
+        BN("55e16"),
+        this.CRV.address,
+        BN("15e16")
+      );
+      await t.wait();
+    }
+  }
+
+  async ensureDAIOracle() {
+    if (this.Info.DAIOracle != undefined) {
+      this.DAIOracle = IOracleRelay__factory.connect(
+        this.Info.DAIOracle,
+        this.deployer
+      );
+      console.log(`found DAIOracle at ${this.Info.DAIOracle}`);
+    } else {
+      console.log("deploying new DAI oracle");
+      let cl = undefined;
+      let pool = undefined;
+      if (this.Info.USDC_DAI_CL) {
+        cl = await new ChainlinkOracleRelay__factory(this.deployer).deploy(
+          this.Info.USDC_DAI_CL, //pool_address
+          BN("1e10"), //mul
+          BN("1") //div
+        );
+        await cl.deployed();
+      }
+      if (this.Info.USDC_DAI_POOL) {
+        pool = await new UniswapV3OracleRelay__factory(this.deployer).deploy(
+          60 * 60 * 4,
+          this.Info.USDC_DAI_POOL, //pool_address
+          false, //quote_token_is_token0
+          BN("1e12"), //mul
+          BN("1") //div
+        );
+        await pool.deployed();
+      }
+      if (cl && pool) {
+        await cl.deployed();
+        await pool.deployed();
+        this.DAIOracle = await new AnchoredViewRelay__factory(
+          this.deployer
+        ).deploy(cl.address, cl.address, 40, 100);
+      } else {
+        this.DAIOracle = cl ? cl : pool!;
+      }
+      await this.DAIOracle.deployed();
+      this.Info.DAIOracle = this.DAIOracle.address;
+    }
+    if (
+      (await this.Oracle._relays(this.DAI.address)) != this.DAIOracle.address
+    ) {
+      let r2 = await this.Oracle.setRelay(
+        this.DAI.address,
+        this.DAIOracle.address
+      );
+      await r2.wait();
+    }
+    if (
+      (await this.VaultController._tokenAddress_tokenId(this.DAI.address)).eq(0)
+    ) {
+      console.log("registering DAI into vault controller");
+      let t = await this.VaultController.registerErc20(
+        this.DAI.address,
+        BN("77e16"),
+        this.DAI.address,
+        BN("10e16")
+      );
+      await t.wait();
+    }
+  }
+
+  async ensureDYDXOracle() {
+    if (this.Info.DYDXOracle != undefined) {
+      this.DYDXOracle = IOracleRelay__factory.connect(
+        this.Info.DYDXOracle,
+        this.deployer
+      );
+      console.log(`found DYDXOracle at ${this.Info.DYDXOracle}`);
+    } else {
+      console.log("deploying new DYDX oracle");
+      let cl = undefined;
+      let pool = undefined;
+      if (this.Info.USDC_DYDX_CL) {
+        cl = await new ChainlinkOracleRelay__factory(this.deployer).deploy(
+          this.Info.USDC_DYDX_CL, //pool_address
+          BN("1e10"), //mul
+          BN("1") //div
+        );
+        await cl.deployed();
+      }
+      if (this.Info.USDC_DYDX_POOL) {
+        pool = await new UniswapV3OracleRelay__factory(this.deployer).deploy(
+          60 * 60 * 4,
+          this.Info.USDC_DYDX_POOL, //pool_address
+          false, //quote_token_is_token0
+          BN("1e12"), //mul
+          BN("1") //div
+        );
+        await pool.deployed();
+      }
+      if (cl && pool) {
+        await cl.deployed();
+        await pool.deployed();
+        this.DYDXOracle = await new AnchoredViewRelay__factory(
+          this.deployer
+        ).deploy(cl.address, cl.address, 40, 100);
+      } else {
+        this.DYDXOracle = cl ? cl : pool!;
+      }
+      await this.DYDXOracle.deployed();
+      this.Info.DYDXOracle = this.DYDXOracle.address;
+    }
+    if (
+      (await this.Oracle._relays(this.DYDX.address)) != this.DYDXOracle.address
+    ) {
+      let r2 = await this.Oracle.setRelay(
+        this.DYDX.address,
+        this.DYDXOracle.address
+      );
+      await r2.wait();
+    }
+    if (
+      (await this.VaultController._tokenAddress_tokenId(this.DYDX.address)).eq(0)
+    ) {
+      console.log("registering DYDX into vault controller");
+      let t = await this.VaultController.registerErc20(
+        this.DYDX.address,
+        BN("25e16"),
+        this.DYDX.address,
+        BN("15e16")
+      );
+      await t.wait();
+    }
+  }
+
+  async ensureFXSOracle() {
+    if (this.Info.FXSOracle != undefined) {
+      this.FXSOracle = IOracleRelay__factory.connect(
+        this.Info.FXSOracle,
+        this.deployer
+      );
+      console.log(`found FXSOracle at ${this.Info.FXSOracle}`);
+    } else {
+      console.log("deploying new FXS oracle");
+      let cl = undefined;
+      let pool = undefined;
+      if (this.Info.USDC_FXS_CL) {
+        cl = await new ChainlinkOracleRelay__factory(this.deployer).deploy(
+          this.Info.USDC_FXS_CL, //pool_address
+          BN("1e10"), //mul
+          BN("1") //div
+        );
+        await cl.deployed();
+      }
+      if (this.Info.USDC_FXS_POOL) {
+        pool = await new UniswapV3OracleRelay__factory(this.deployer).deploy(
+          60 * 60 * 4,
+          this.Info.USDC_FXS_POOL, //pool_address
+          false, //quote_token_is_token0
+          BN("1e12"), //mul
+          BN("1") //div
+        );
+        await pool.deployed();
+      }
+      if (cl && pool) {
+        await cl.deployed();
+        await pool.deployed();
+        this.FXSOracle = await new AnchoredViewRelay__factory(
+          this.deployer
+        ).deploy(cl.address, cl.address, 40, 100);
+      } else {
+        this.FXSOracle = cl ? cl : pool!;
+      }
+      await this.FXSOracle.deployed();
+      this.Info.FXSOracle = this.FXSOracle.address;
+    }
+    if (
+      (await this.Oracle._relays(this.FXS.address)) != this.FXSOracle.address
+    ) {
+      let r2 = await this.Oracle.setRelay(
+        this.FXS.address,
+        this.FXSOracle.address
+      );
+      await r2.wait();
+    }
+    if (
+      (await this.VaultController._tokenAddress_tokenId(this.FXS.address)).eq(0)
+    ) {
+      console.log("registering FXS into vault controller");
+      let t = await this.VaultController.registerErc20(
+        this.FXS.address,
+        BN("10e16"),
+        this.FXS.address,
+        BN("10e16")
+      );
+      await t.wait();
+    }
+  }
+
+  async ensureOPOracle() {
+    if (this.Info.OPOracle != undefined) {
+      this.OPOracle = IOracleRelay__factory.connect(
+        this.Info.OPOracle,
+        this.deployer
+      );
+      console.log(`found OPOracle at ${this.Info.OPOracle}`);
+    } else {
+      console.log("deploying new OP oracle");
+      let cl = undefined;
+      let pool = undefined;
+      if (this.Info.USDC_OP_CL) {
+        cl = await new ChainlinkOracleRelay__factory(this.deployer).deploy(
+          this.Info.USDC_OP_CL, //pool_address
+          BN("1e10"), //mul
+          BN("1") //div
+        );
+        await cl.deployed();
+      }
+      if (this.Info.USDC_OP_POOL) {
+        pool = await new UniswapV3OracleRelay__factory(this.deployer).deploy(
+          60 * 60 * 4,
+          this.Info.USDC_OP_POOL, //pool_address
+          false, //quote_token_is_token0
+          BN("1e12"), //mul
+          BN("1") //div
+        );
+        await pool.deployed();
+      }
+      if (cl && pool) {
+        await cl.deployed();
+        await pool.deployed();
+        this.OPOracle = await new AnchoredViewRelay__factory(
+          this.deployer
+        ).deploy(cl.address, cl.address, 40, 100);
+      } else {
+        this.OPOracle = cl ? cl : pool!;
+      }
+      await this.OPOracle.deployed();
+      this.Info.OPOracle = this.OPOracle.address;
+    }
+    if (
+      (await this.Oracle._relays(this.OP.address)) != this.OPOracle.address
+    ) {
+      let r2 = await this.Oracle.setRelay(
+        this.OP.address,
+        this.OPOracle.address
+      );
+      await r2.wait();
+    }
+    if (
+      (await this.VaultController._tokenAddress_tokenId(this.OP.address)).eq(0)
+    ) {
+      console.log("registering OP into vault controller");
+      let t = await this.VaultController.registerErc20(
+        this.OP.address,
+        BN("15e16"),
+        this.OP.address,
+        BN("12e16")
+      );
+      await t.wait();
+    }
+  }
+
+  async ensurePERPOracle() {
+    if (this.Info.PERPOracle != undefined) {
+      this.PERPOracle = IOracleRelay__factory.connect(
+        this.Info.PERPOracle,
+        this.deployer
+      );
+      console.log(`found PERPOracle at ${this.Info.PERPOracle}`);
+    } else {
+      console.log("deploying new PERP oracle");
+      let cl = undefined;
+      let pool = undefined;
+      if (this.Info.USDC_PERP_CL) {
+        cl = await new ChainlinkOracleRelay__factory(this.deployer).deploy(
+          this.Info.USDC_PERP_CL, //pool_address
+          BN("1e10"), //mul
+          BN("1") //div
+        );
+        await cl.deployed();
+      }
+      if (this.Info.USDC_PERP_POOL) {
+        pool = await new UniswapV3OracleRelay__factory(this.deployer).deploy(
+          60 * 60 * 4,
+          this.Info.USDC_PERP_POOL, //pool_address
+          false, //quote_token_is_token0
+          BN("1e12"), //mul
+          BN("1") //div
+        );
+        await pool.deployed();
+      }
+      if (cl && pool) {
+        await cl.deployed();
+        await pool.deployed();
+        this.PERPOracle = await new AnchoredViewRelay__factory(
+          this.deployer
+        ).deploy(cl.address, cl.address, 40, 100);
+      } else {
+        this.PERPOracle = cl ? cl : pool!;
+      }
+      await this.PERPOracle.deployed();
+      this.Info.PERPOracle = this.PERPOracle.address;
+    }
+    if (
+      (await this.Oracle._relays(this.PERP.address)) != this.PERPOracle.address
+    ) {
+      let r2 = await this.Oracle.setRelay(
+        this.PERP.address,
+        this.PERPOracle.address
+      );
+      await r2.wait();
+    }
+    if (
+      (await this.VaultController._tokenAddress_tokenId(this.PERP.address)).eq(0)
+    ) {
+      console.log("registering PERP into vault controller");
+      let t = await this.VaultController.registerErc20(
+        this.PERP.address,
+        BN("10e16"),
+        this.PERP.address,
+        BN("10e16")
+      );
+      await t.wait();
+    }
+  }
+
+  async ensureSNXOracle() {
+    if (this.Info.SNXOracle != undefined) {
+      this.SNXOracle = IOracleRelay__factory.connect(
+        this.Info.SNXOracle,
+        this.deployer
+      );
+      console.log(`found SNXOracle at ${this.Info.SNXOracle}`);
+    } else {
+      console.log("deploying new SNX oracle");
+      let cl = undefined;
+      let pool = undefined;
+      if (this.Info.USDC_SNX_CL) {
+        cl = await new ChainlinkOracleRelay__factory(this.deployer).deploy(
+          this.Info.USDC_SNX_CL, //pool_address
+          BN("1e10"), //mul
+          BN("1") //div
+        );
+        await cl.deployed();
+      }
+      if (this.Info.USDC_SNX_POOL) {
+        pool = await new UniswapV3OracleRelay__factory(this.deployer).deploy(
+          60 * 60 * 4,
+          this.Info.USDC_SNX_POOL, //pool_address
+          false, //quote_token_is_token0
+          BN("1e12"), //mul
+          BN("1") //div
+        );
+        await pool.deployed();
+      }
+      if (cl && pool) {
+        await cl.deployed();
+        await pool.deployed();
+        this.SNXOracle = await new AnchoredViewRelay__factory(
+          this.deployer
+        ).deploy(cl.address, cl.address, 40, 100);
+      } else {
+        this.SNXOracle = cl ? cl : pool!;
+      }
+      await this.SNXOracle.deployed();
+      this.Info.SNXOracle = this.SNXOracle.address;
+    }
+    if (
+      (await this.Oracle._relays(this.SNX.address)) != this.SNXOracle.address
+    ) {
+      let r2 = await this.Oracle.setRelay(
+        this.SNX.address,
+        this.SNXOracle.address
+      );
+      await r2.wait();
+    }
+    if (
+      (await this.VaultController._tokenAddress_tokenId(this.SNX.address)).eq(0)
+    ) {
+      console.log("registering SNX into vault controller");
+      let t = await this.VaultController.registerErc20(
+        this.SNX.address,
+        BN("33e16"),
+        this.SNX.address,
+        BN("18e16")
+      );
+      await t.wait();
+    }
+  }
+
+  async ensureUSDTOracle() {
+    if (this.Info.USDTOracle != undefined) {
+      this.USDTOracle = IOracleRelay__factory.connect(
+        this.Info.USDTOracle,
+        this.deployer
+      );
+      console.log(`found USDTOracle at ${this.Info.USDTOracle}`);
+    } else {
+      console.log("deploying new USDT oracle");
+      let cl = undefined;
+      let pool = undefined;
+      if (this.Info.USDC_USDT_CL) {
+        cl = await new ChainlinkOracleRelay__factory(this.deployer).deploy(
+          this.Info.USDC_USDT_CL, //pool_address
+          BN("1e10"), //mul
+          BN("1") //div
+        );
+        await cl.deployed();
+      }
+      if (this.Info.USDC_USDT_POOL) {
+        pool = await new UniswapV3OracleRelay__factory(this.deployer).deploy(
+          60 * 60 * 4,
+          this.Info.USDC_USDT_POOL, //pool_address
+          false, //quote_token_is_token0
+          BN("1e20"), //mul
+          BN("1") //div
+        );
+        await pool.deployed();
+      }
+      if (cl && pool) {
+        await cl.deployed();
+        await pool.deployed();
+        this.USDTOracle = await new AnchoredViewRelay__factory(
+          this.deployer
+        ).deploy(cl.address, cl.address, 40, 100);
+      } else {
+        this.USDTOracle = cl ? cl : pool!;
+      }
+      await this.USDTOracle.deployed();
+      this.Info.USDTOracle = this.USDTOracle.address;
+    }
+    if (
+      (await this.Oracle._relays(this.USDT.address)) != this.USDTOracle.address
+    ) {
+      let r2 = await this.Oracle.setRelay(
+        this.USDT.address,
+        this.USDTOracle.address
+      );
+      await r2.wait();
+    }
+    if (
+      (await this.VaultController._tokenAddress_tokenId(this.USDT.address)).eq(0)
+    ) {
+      console.log("registering USDT into vault controller");
+      let t = await this.VaultController.registerErc20(
+        this.USDT.address,
+        BN("70e16"),
+        this.USDT.address,
+        BN("25e16")
+      );
+      await t.wait();
+    }
+  }
+
+  async ensureUSDCOracle() {
+    if (this.Info.USDCOracle != undefined) {
+      this.USDCOracle = IOracleRelay__factory.connect(
+        this.Info.USDCOracle,
+        this.deployer
+      );
+      console.log(`found USDCOracle at ${this.Info.USDCOracle}`);
+    } else {
+      console.log("deploying new USDC oracle");
+      let cl = undefined;
+      let pool = undefined;
+      if (this.Info.USDC_USDC_CL) {
+        cl = await new ChainlinkOracleRelay__factory(this.deployer).deploy(
+          this.Info.USDC_USDC_CL, //pool_address
+          BN("1e10"), //mul
+          BN("1") //div
+        );
+        await cl.deployed();
+      }
+      if (this.Info.USDC_USDC_POOL) {
+        pool = await new UniswapV3OracleRelay__factory(this.deployer).deploy(
+          60 * 60 * 4,
+          this.Info.USDC_USDC_POOL, //pool_address
+          false, //quote_token_is_token0
+          BN("1e12"), //mul
+          BN("1") //div
+        );
+        await pool.deployed();
+      }
+      if (cl && pool) {
+        await cl.deployed();
+        await pool.deployed();
+        this.USDCOracle = await new AnchoredViewRelay__factory(
+          this.deployer
+        ).deploy(cl.address, cl.address, 40, 100);
+      } else {
+        this.USDCOracle = cl ? cl : pool!;
+      }
+      await this.USDCOracle.deployed();
+      this.Info.USDCOracle = this.USDCOracle.address;
+    }
+    if (
+      (await this.Oracle._relays(this.USDC.address)) != this.USDCOracle.address
+    ) {
+      let r2 = await this.Oracle.setRelay(
+        this.USDC.address,
+        this.USDCOracle.address
+      );
+      await r2.wait();
+    }
+    if (
+      (await this.VaultController._tokenAddress_tokenId(this.USDC.address)).eq(0)
+    ) {
+      console.log("registering USDC into vault controller");
+      let t = await this.VaultController.registerErc20(
+        this.USDC.address,
+        BN("80e16"),
+        this.USDC.address,
+        BN("10e16")
+      );
+      await t.wait();
+    }
+  }
+
+  async ensureUSDA() {
+    if (this.Info.USDA != undefined) {
+      this.USDA = new USDA__factory(this.deployer).attach(this.Info.USDA);
+      console.log(`found USDA at ${this.Info.USDA}`);
+    } else {
+      const uUSDA = await new USDA__factory(this.deployer).deploy();
+      await uUSDA.deployed();
+      console.log("USDA implementation address: ", uUSDA.address);
+      //USDA proxy
+      const USDA = await new TransparentUpgradeableProxy__factory(
+        this.deployer
+      ).deploy(uUSDA.address, this.ProxyAdmin.address, "0x");
+      await USDA.deployed();
+      console.log("USDA proxy address: ", USDA.address);
+      //attach
+      this.USDA = new USDA__factory(this.deployer).attach(USDA.address);
+      let t = await this.USDA.initialize(this.USDC.address);
+      await t.wait();
+      console.log("USDA initialized: ", this.USDA.address);
+      this.Info.USDA = this.USDA.address;
+    }
+    if (
+      (await this.USDA.connect(this.deployer).getVaultController()) !=
       this.VaultController.address
     ) {
-      let t = await this.USDI.connect(this.deployer).setVaultController(
+      let t = await this.USDA.connect(this.deployer).setVaultController(
         this.VaultController.address
       );
       await t.wait();
       console.log(
-        "Set VaultController on USDI to: ",
+        "Set VaultController on USDA to: ",
         this.VaultController.address
       );
     }
     if (
-      (await this.VaultController.connect(this.deployer)._usdi()) !=
-      this.USDI.address
+      (await this.VaultController.connect(this.deployer)._usda()) !=
+      this.USDA.address
     ) {
       {
-        let t = await this.VaultController.connect(this.deployer).registerUSDi(
-          this.USDI.address
+        let t = await this.VaultController.connect(this.deployer).registerUSDa(
+          this.USDA.address
         );
         await t.wait();
       }
-      console.log("Set USDI on VaultController to: ", this.USDI.address);
+      console.log("Set USDA on VaultController to: ", this.USDA.address);
     }
   }
   async ensureCurve() {

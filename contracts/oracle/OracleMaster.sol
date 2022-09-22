@@ -12,6 +12,7 @@ import "../_external/Ownable.sol";
 contract OracleMaster is IOracleMaster, Ownable {
   // mapping of token to address
   mapping(address => address) public _relays;
+  bool public crossChainActive;
 
   /// @notice empty constructor
   constructor() Ownable() {}

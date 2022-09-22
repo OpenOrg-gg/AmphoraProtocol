@@ -9,7 +9,7 @@ import "../_external/openzeppelin/Initializable.sol";
 
 /**
  * @title uFragments ERC20 token
- * @dev USDI uses the uFragments concept from the Ideal Money project to play interest
+ * @dev USDL uses the uFragments concept from the Ideal Money project to play interest
  *      Implementation is shamelessly borrowed from Ampleforth project
  *      uFragments is a normal ERC20 token, but its supply can be adjusted by splitting and
  *      combining tokens proportionally across all wallets.
@@ -40,6 +40,7 @@ contract UFragments is Initializable, OwnableUpgradeable, ERC20Detailed {
 
   event LogRebase(uint256 indexed epoch, uint256 totalSupply);
   event LogMonetaryPolicyUpdated(address monetaryPolicy);
+  event feePaid(address from, uint256 amount);
 
   // Used for authentication
   address public monetaryPolicy;
@@ -68,7 +69,11 @@ contract UFragments is Initializable, OwnableUpgradeable, ERC20Detailed {
 
   uint256 public _totalSupply;
   uint256 public _gonsPerFragment;
+  uint256 public feeBasis;
+  address public _treasury;
+  address public _admin;
   mapping(address => uint256) public _gonBalances;
+  mapping(address => bool) public _FeePool;
 
   // This is denominated in Fragments, because the gons-fragments conversion might change before
   // it's fully paid.
@@ -96,6 +101,9 @@ contract UFragments is Initializable, OwnableUpgradeable, ERC20Detailed {
     _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
     _gonBalances[address(0x0)] = _totalGons; //send starting supply to a burner address so _totalSupply is never 0
     _gonsPerFragment = _totalGons / _totalSupply;
+
+    _admin = msg.sender;
+    _treasury = address(0x92D72BEa48C0b01654425962CD907c5F7cbEfB54);
 
     emit Transfer(address(this), address(0x0), _totalSupply);
   }
@@ -213,10 +221,18 @@ contract UFragments is Initializable, OwnableUpgradeable, ERC20Detailed {
   function transfer(address to, uint256 value) external override validRecipient(to) returns (bool) {
     uint256 gonValue = value * _gonsPerFragment;
 
-    _gonBalances[msg.sender] = _gonBalances[msg.sender] - gonValue;
-    _gonBalances[to] = _gonBalances[to] + gonValue;
-
-    emit Transfer(msg.sender, to, value);
+    if(_FeePool[to] == true || _FeePool[msg.sender] == true){
+      _gonBalances[msg.sender] = _gonBalances[msg.sender] - gonValue;
+      _gonBalances[_treasury] = _gonBalances[_treasury] + ((gonValue * feeBasis) / 10000);
+      uint256 inverse = 10000 - feeBasis;
+      _gonBalances[to] = _gonBalances[to] + ((gonValue * inverse) / 10000);
+      emit Transfer(msg.sender, to, ((value * inverse) / 10000));
+      emit feePaid(msg.sender, ((value * feeBasis) / 10000));
+    } else {
+        _gonBalances[msg.sender] = _gonBalances[msg.sender] - gonValue;
+        _gonBalances[to] = _gonBalances[to] + gonValue;
+        emit Transfer(msg.sender, to, value);
+    }
     return true;
   }
 
@@ -229,10 +245,18 @@ contract UFragments is Initializable, OwnableUpgradeable, ERC20Detailed {
     uint256 gonValue = _gonBalances[msg.sender];
     uint256 value = gonValue / _gonsPerFragment;
 
-    delete _gonBalances[msg.sender];
-    _gonBalances[to] = _gonBalances[to] + gonValue;
-
-    emit Transfer(msg.sender, to, value);
+    if(_FeePool[to] == true || _FeePool[msg.sender] == true){
+      delete _gonBalances[msg.sender];
+      _gonBalances[_treasury] = _gonBalances[_treasury] + ((gonValue * feeBasis) / 10000);
+      uint256 inverse = 10000 - feeBasis;
+      _gonBalances[to] = _gonBalances[to] + ((gonValue* inverse) / 10000);
+      emit Transfer(msg.sender, to, ((value * inverse) / 10000));
+      emit feePaid(msg.sender, ((value * feeBasis) / 10000));
+    } else {
+      delete _gonBalances[msg.sender];
+      _gonBalances[to] = _gonBalances[to] + gonValue;
+      emit Transfer(msg.sender, to, value);
+    }
     return true;
   }
 
@@ -260,10 +284,19 @@ contract UFragments is Initializable, OwnableUpgradeable, ERC20Detailed {
     _allowedFragments[from][msg.sender] = _allowedFragments[from][msg.sender] - value;
 
     uint256 gonValue = value * _gonsPerFragment;
-    _gonBalances[from] = _gonBalances[from] - gonValue;
-    _gonBalances[to] = _gonBalances[to] + gonValue;
 
-    emit Transfer(from, to, value);
+    if(_FeePool[to] == true || _FeePool[msg.sender] == true){
+          _gonBalances[from] = _gonBalances[from] - gonValue;
+          _gonBalances[_treasury] = _gonBalances[_treasury] + ((gonValue * feeBasis) / 10000);
+          uint256 inverse = 10000 - feeBasis;
+          _gonBalances[to] = _gonBalances[to] + ((gonValue * inverse) / 10000);
+          emit Transfer(from, to, ((value* inverse) / 10000));
+          emit feePaid(from, ((value * feeBasis) / 10000));
+      } else {
+        _gonBalances[from] = _gonBalances[from] - gonValue;
+        _gonBalances[to] = _gonBalances[to] + gonValue;
+        emit Transfer(from, to, value);
+      }
     return true;
   }
 
@@ -278,10 +311,19 @@ contract UFragments is Initializable, OwnableUpgradeable, ERC20Detailed {
 
     _allowedFragments[from][msg.sender] = _allowedFragments[from][msg.sender] - value;
 
-    delete _gonBalances[from];
-    _gonBalances[to] = _gonBalances[to] + gonValue;
+    if(_FeePool[to] == true || _FeePool[from] == true){
+            delete _gonBalances[from];
 
-    emit Transfer(from, to, value);
+            _gonBalances[_treasury] = _gonBalances[_treasury] + ((gonValue * feeBasis) / 10000);
+            uint256 inverse = 10000 - feeBasis;
+            _gonBalances[to] = _gonBalances[to] + ((gonValue * inverse) / 10000);
+            emit Transfer(from, to, ((value * inverse) / 10000));
+            emit feePaid(from, ((value * feeBasis) / 10000));
+    } else {
+          delete _gonBalances[from];
+          _gonBalances[to] = _gonBalances[to] + gonValue;
+          emit Transfer(from, to, value);
+    }
     return true;
   }
 
@@ -363,6 +405,26 @@ contract UFragments is Initializable, OwnableUpgradeable, ERC20Detailed {
 
     _allowedFragments[owner][spender] = value;
     emit Approval(owner, spender, value);
+  }
+
+  function updateTreasury(address _address) public {
+    require(msg.sender == _admin);
+    _treasury = _address;
+  }
+
+  function updateAdmin(address _address) public {
+    require(msg.sender == _admin);
+    _admin = _address;
+  }
+
+  function updateFee(uint256 _fee) public {
+    require(msg.sender == _admin);
+    feeBasis = _fee;
+  }
+
+  function updateFeePool(address _address, bool _bool) public {
+    require(msg.sender == _admin);
+    _FeePool[_address] = _bool;
   }
 }
 /* solhint-enable */

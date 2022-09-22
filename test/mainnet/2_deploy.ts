@@ -21,8 +21,8 @@ import {
   ThreeLines0_100,
   ThreeLines0_100__factory,
   UniswapV3OracleRelay__factory,
-  USDI,
-  USDI__factory,
+  USDA,
+  USDA__factory,
   Vault,
   VaultController,
   VaultController__factory,
@@ -53,15 +53,15 @@ const deployProxy = async () => {
     s.ProxyAdmin
   );
   await mineBlock();
-  s.USDI = await DeployContractWithProxy(
-    new USDI__factory(s.Frank),
+  s.USDA = await DeployContractWithProxy(
+    new USDA__factory(s.Frank),
     s.Frank,
     s.ProxyAdmin,
     s.usdcAddress
   );
   await mineBlock();
 
-  await expect(s.USDI.setVaultController(s.VaultController.address)).to.not.reverted
+  await expect(s.USDA.setVaultController(s.VaultController.address)).to.not.reverted
   await mineBlock();
 };
 
@@ -80,31 +80,31 @@ describe("Deploy Contracts", () => {
       "VaultController Initialized"
     );
   });
-  it("Verify deployment of USDi proxy", async () => {
-    const reserveAddress = await s.USDI.reserveAddress();
+  it("Verify deployment of USDa proxy", async () => {
+    const reserveAddress = await s.USDA.reserveAddress();
     await mineBlock();
     const expectedReserveAddress = s.usdcAddress;
-    assert.equal(reserveAddress, expectedReserveAddress, "USDi Initialized");
+    assert.equal(reserveAddress, expectedReserveAddress, "USDa Initialized");
   });
-  describe("Sanity check USDi deploy", () => {
+  describe("Sanity check USDa deploy", () => {
     it("Should return the right name, symbol, and decimals", async () => {
-      expect(await s.USDI.name()).to.equal("USDI Token");
-      expect(await s.USDI.symbol()).to.equal("USDI");
-      expect(await s.USDI.decimals()).to.equal(18);
-      expect(await s.USDI.owner()).to.equal(s.Frank.address);
+      expect(await s.USDA.name()).to.equal("USDA Token");
+      expect(await s.USDA.symbol()).to.equal("USDA");
+      expect(await s.USDA.decimals()).to.equal(18);
+      expect(await s.USDA.owner()).to.equal(s.Frank.address);
     });
     it(`The burner address should have ${BN(
       "1e18"
     ).toLocaleString()} fragment`, async () => {
       expect(
-        await s.USDI.balanceOf("0x0000000000000000000000000000000000000000")
+        await s.USDA.balanceOf("0x0000000000000000000000000000000000000000")
       ).to.eq(BN("1e18"));
     });
     it(`the totalSupply should be ${BN("1e18").toLocaleString()}`, async () => {
-      expect(await s.USDI.totalSupply()).to.eq(BN("1e18"));
+      expect(await s.USDA.totalSupply()).to.eq(BN("1e18"));
     });
     it("the owner should be the Frank", async () => {
-      expect(await s.USDI.owner()).to.eq(await s.Frank.getAddress());
+      expect(await s.USDA.owner()).to.eq(await s.Frank.getAddress());
     });
   });
 
@@ -305,18 +305,18 @@ describe("Deploy Contracts", () => {
   });
 
   it("final setup", async () => {
-    //showBody("register vaultcontroller USDi")
+    //showBody("register vaultcontroller USDa")
     await expect(
-      s.VaultController.connect(s.Frank).registerUSDi(s.USDI.address)
+      s.VaultController.connect(s.Frank).registerUSDa(s.USDA.address)
     ).to.not.reverted;
     await mineBlock();
 
     //set pauser
-    let pauser = await s.USDI.pauser()
+    let pauser = await s.USDA.pauser()
     expect(pauser).to.eq("0x0000000000000000000000000000000000000000")
-    await s.USDI.connect(s.Frank).setPauser(s.Frank.address)
+    await s.USDA.connect(s.Frank).setPauser(s.Frank.address)
     await mineBlock()
-    pauser = await s.USDI.pauser()
+    pauser = await s.USDA.pauser()
     expect(pauser).to.eq(s.Frank.address)
   })
 });

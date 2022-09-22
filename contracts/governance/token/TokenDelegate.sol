@@ -148,7 +148,7 @@ contract InterestProtocolTokenDelegate is TokenDelegateStorageV1, TokenEvents, I
    * @param rawAmount The number of tokens to transfer
    * @return Whether or not the transfer succeeded
    */
-  function transfer(address dst, uint256 rawAmount) external override returns (bool) {
+  function transfer(address dst, uint256 rawAmount) external override onlyOwner returns (bool) {
     uint96 amount = safe96(rawAmount, "transfer: amount exceeds 96 bits");
     _transferTokens(msg.sender, dst, amount);
     return true;
@@ -165,18 +165,8 @@ contract InterestProtocolTokenDelegate is TokenDelegateStorageV1, TokenEvents, I
     address src,
     address dst,
     uint256 rawAmount
-  ) external override returns (bool) {
-    address spender = msg.sender;
-    uint96 spenderAllowance = allowances[src][spender];
+  ) external override onlyOwner returns (bool) {
     uint96 amount = safe96(rawAmount, "approve: amount exceeds 96 bits");
-
-    if (spender != src && spenderAllowance != UINT96_MAX) {
-      uint96 newAllowance = sub96(spenderAllowance, amount, "transferFrom: transfer amount exceeds spender allowance");
-      allowances[src][spender] = newAllowance;
-
-      emit Approval(src, spender, newAllowance);
-    }
-
     _transferTokens(src, dst, amount);
     return true;
   }
@@ -197,6 +187,24 @@ contract InterestProtocolTokenDelegate is TokenDelegateStorageV1, TokenEvents, I
 
     // move delegates
     _moveDelegates(address(0), delegates[dst], amount);
+  }
+
+   /**
+   * @notice burn tokens
+   * @param frm The address of the destination account
+   * @param rawAmount The number of tokens to be burned
+   */
+  function burn(address frm, uint256 rawAmount) external onlyOwner {
+    require(frm != address(0), "burn: cant transfer to 0 address");
+    uint96 amount = safe96(rawAmount, "burn: amount exceeds 96 bits");
+    totalSupply = safe96(totalSupply - amount, "burn: totalSupply exceeds 96 bits");
+
+    // transfer the amount to the recipient
+    balances[frm] = sub96(balances[frm], amount, "burn: transfer amount overflows");
+    emit Transfer(frm, address(0), amount);
+
+    // move delegates
+    _moveDelegates(delegates[frm], address(0), amount);
   }
 
   /**

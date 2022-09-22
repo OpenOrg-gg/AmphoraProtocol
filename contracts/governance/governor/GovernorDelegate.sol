@@ -7,7 +7,7 @@ import "./GovernorStorage.sol";
 
 contract GovernorCharlieDelegate is GovernorCharlieDelegateStorage, GovernorCharlieEvents, IGovernorCharlieDelegate {
   /// @notice The name of this contract
-  string public constant name = "Interest Protocol Governor";
+  string public constant name = "Amphora Protocol Governor";
 
   /// @notice The maximum number of actions that can be included in a proposal
   uint256 public constant proposalMaxOperations = 10;
