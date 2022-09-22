@@ -1,3 +1,11 @@
+## About:
+
+Built off of Interest Protocol, Convex, Synthetix rewards and custom code, Amphora Protocol is a highly efficient lending market for sUSD that acquires Curve and Convex to enhance voting pairs, and provides new routes for users to use SNX LP tokens for greater liquidity.
+
+This repo is a V0.1 draft, it is incomplete, unaudited and extremely broken. Please don't be dumb enough to try and implement this current code in a fork, as your users will get rekt.
+
+Development bounties are coming soon, but anyone can contribute through opening a pull request. If you have questions, reach out to @adamscochran on Twitter.
+
 
 ## setup
 
