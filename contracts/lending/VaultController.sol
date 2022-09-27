@@ -37,6 +37,9 @@ contract VaultController is
   // mapping of token address to token id
   mapping(address => uint256) public _tokenAddress_tokenId;
 
+  //mapping of token id to address
+  mapping(uint256 => address) public _tokenId_tokenAddress;
+
   //mapping of tokenId to the LTV*1
   mapping(uint256 => uint256) public _tokenId_tokenLTV;
 
@@ -248,6 +251,8 @@ contract VaultController is
     _tokensRegistered = _tokensRegistered + 1;
     // set & give the token an id
     _tokenAddress_tokenId[token_address] = _tokensRegistered;
+    //set the inverse
+    _tokenId_tokenAddress[_tokensRegistered] = token_address;
     // set the tokens oracle
     _tokenId_oracleAddress[_tokensRegistered] = oracle_address;
     // set the tokens ltv
@@ -279,6 +284,8 @@ contract VaultController is
     _tokensRegistered = _tokensRegistered + 1;
     // set & give the token an id
     _tokenAddress_tokenId[token_address] = _tokensRegistered;
+    //set the inverse
+    _tokenId_tokenAddress[_tokensRegistered] = token_address;
     // set the tokens oracle
     _tokenId_oracleAddress[_tokensRegistered] = oracle_address;
     // set the tokens ltv
@@ -509,7 +516,7 @@ contract VaultController is
       IBooster(booster).withdraw(PID, tokens_to_liquidate);
 
       address depositToken = IBooster(Booster).pidToDepositToken(PID);
-      
+
       //get deposit token from user
       vault.controllerTransfer(depositToken, address(this), tokens_to_liquidate);
 
@@ -650,7 +657,8 @@ contract VaultController is
       }
       // get the address of the token through the array of enabled tokens
       // note that index 0 of this vaultId 1, so we must subtract 1
-      address token_address = _enabledTokens[i - 1];
+
+      address token_address = _tokenId_tokenAddress[i - 1];
       // the balance is the vaults token balance of the current collateral token in the loop
       uint256 balance = vault.tokenBalance(token_address);
       if (balance == 0) {
@@ -741,16 +749,22 @@ contract VaultController is
     for (uint96 i = start; i <= stop; i++) {
       IVault vault = getVault(i);
       uint256[] memory tokenBalances = new uint256[](_enabledTokens.length);
+      uint256[] memory lpTokenBalances = new uint256[](_enabledLPTokens.length);
 
       for (uint256 j = 0; j < _enabledTokens.length; j++) {
         tokenBalances[j] = vault.tokenBalance(_enabledTokens[j]);
+      }
+      for (uint256 k = 0; k < _enabledLPTokens.length; k++){
+        lpTokenBalances[k] = vault.tokenBalance(_enabledLPTokens[k]);
       }
       summaries[i - start] = VaultSummary(
         i,
         this.vaultBorrowingPower(i),
         this.vaultLiability(i),
         _enabledTokens,
-        tokenBalances
+        _enabledLPTokens,
+        tokenBalances,
+        lpTokenBalances
       );
     }
     return summaries;
