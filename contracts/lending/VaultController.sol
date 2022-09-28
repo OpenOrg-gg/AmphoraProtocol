@@ -21,7 +21,7 @@ import "../_external/openzeppelin/PausableUpgradeable.sol";
 /// @title Controller of all vaults in the USDa borrow/lend system
 /// @notice VaultController contains all business logic for borrowing and lending through the protocol.
 /// It is also in charge of accruing interest.
-abstract contract VaultController is
+contract VaultController is
   Initializable,
   PausableUpgradeable,
   IVaultController,
@@ -526,9 +526,9 @@ abstract contract VaultController is
       vault.setUserVirtualBalance(asset_address, tokenBalance);
 
       // finally, deliver tokens to liquidator but since we withdrew they came to this controller.
-      //SafeERC20Upgradeable.safeTransferFrom(asset_address, address(this), address(_treasury), (tokens_to_liquidate * _feeBasis) /1000);
+      IERC20(asset_address).transferFrom(address(this), address(_treasury), (tokens_to_liquidate * _feeBasis) /1000);
       uint256 inverse = 1000 - _feeBasis;
-      //SafeERC20Upgradeable.safeTransferFrom(asset_address, address(this), _msgSender(), ((tokens_to_liquidate * inverse) / 1000));
+      IERC20(asset_address).transferFrom(address(this), _msgSender(), ((tokens_to_liquidate * inverse) / 1000));
     }
     // this might not be needed. Will always be true because it is already implied by _liquidationMath.
     require(get_vault_borrowing_power(vault) <= _vaultLiability(id), "overliquidation");
@@ -784,11 +784,11 @@ abstract contract VaultController is
     return _treasury;
   }
 
-  function enabledLPTokenLookup(address _address) external view returns (bool) {
+  function enabledLPTokensLookup(address _address) external view returns (bool) {
     return _enabledLPTokenLookup[_address];
   }
 
-  function enabledTokenLookup(address _address) external view returns (bool) {
+  function enabledTokensLookup(address _address) external view returns (bool) {
     return _enabledTokenLookup[_address];
   }
 
