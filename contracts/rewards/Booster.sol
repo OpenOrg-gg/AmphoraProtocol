@@ -38,6 +38,7 @@ contract genericBooster{
     address public stakerIncentiveReciever;
     address public platformFeeReciever;
     address public masterMinter;
+    address public vaultController;
 
     bool public isShutdown;
 
@@ -61,13 +62,14 @@ contract genericBooster{
     event Deposited(address indexed user, uint256 indexed poolid, uint256 amount);
     event Withdrawn(address indexed user, uint256 indexed poolid, uint256 amount);
 
-    constructor(address setstaker) public {
+    constructor(address setstaker, address _vaultController) public {
         isShutdown = false;
         owner = msg.sender;
         feeManager = msg.sender;
         poolManager = msg.sender;
         treasury = address(0xC9aDdaB2838C6F5444AFFFC57badb86a2E91e9Cf);
         mainstaker = setstaker;
+        vaultController = _vaultController;
     }
 
      /// SETTER SECTION ///

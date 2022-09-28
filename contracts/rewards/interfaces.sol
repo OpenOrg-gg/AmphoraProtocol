@@ -53,9 +53,9 @@ interface IRegistry{
 }
 
 interface IStaker{
-    function deposit(address, uint32) external;
+    function deposit(address, uint256, uint32) external;
     function withdraw(address) external;
-    function withdraw(address, uint32) external;
+    function withdraw(address, uint256, uint32) external;
     function withdrawAll(address, address) external;
     function createLock(uint256, uint256) external;
     function increaseAmount(uint256) external;
@@ -161,7 +161,7 @@ interface IRewardFactory{
 }
 
 interface IStashFactory{
-    function CreateStash(uint256,address,address,uint256,address) external returns(address);
+    function CreateStash(uint256,address,address) external returns(address);
 }
 
 interface ITokenFactory{
@@ -213,6 +213,8 @@ interface IBooster{
     function lockIncentiveReciever() external view returns (address);
     function stakerIncentiveReciever() external view returns (address);
     function platformFeeReciever() external view returns (address);
+    function vaultController() external view returns (address);
+    function pidToDepositToken(uint256) external view returns (address);
 }
 interface VaultControllerEvents {
   event InterestEvent(uint64 epoch, uint192 amount, uint256 curve_val);
@@ -271,6 +273,14 @@ interface IVaultController is VaultControllerEvents {
   function checkVault(uint96 id) external view returns (bool);
 
   function getVaultAddress(uint96 _id) external view returns (address);
+
+  function booster() external view returns (address);
+
+  function enabledLPTokensLookup(address) external view returns (bool);
+
+  function enabledTokensLookup(address) external view returns (bool);
+
+  function LPDepositTokens(address) external view returns (address);
 
   struct VaultSummary {
     uint96 id;

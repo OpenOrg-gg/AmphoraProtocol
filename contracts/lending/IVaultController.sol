@@ -25,7 +25,7 @@ interface VaultControllerEvents {
 /// @notice extends VaultControllerEvents
 interface IVaultController is VaultControllerEvents {
   // initializer
-  function initialize() external;
+  function initialize(address) external;
 
   // view functions
 
@@ -55,12 +55,22 @@ interface IVaultController is VaultControllerEvents {
 
   function checkVault(uint96 id) external view returns (bool);
 
+  function booster() external view returns (address);
+
+  function enabledLPTokensLookup(address) external view returns (bool);
+
+  function enabledTokensLookup(address) external view returns (bool);
+
+  function LPDepositTokens(address) external view returns (address);
+
   struct VaultSummary {
     uint96 id;
     uint192 borrowingPower;
     uint192 vaultLiability;
     address[] tokenAddresses;
+    address[] lptokenAddresses;
     uint256[] tokenBalances;
+    uint256[] lpokenBalances;
   }
 
   function vaultSummaries(uint96 start, uint96 stop) external view returns (VaultSummary[] memory);

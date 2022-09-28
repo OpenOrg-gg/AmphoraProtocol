@@ -21,7 +21,7 @@ import "../_external/openzeppelin/PausableUpgradeable.sol";
 /// @title Controller of all vaults in the USDa borrow/lend system
 /// @notice VaultController contains all business logic for borrowing and lending through the protocol.
 /// It is also in charge of accruing interest.
-contract VaultController is
+abstract contract VaultController is
   Initializable,
   PausableUpgradeable,
   IVaultController,
@@ -57,7 +57,7 @@ contract VaultController is
   mapping(address => bool) public _enabledLPTokenLookup;
 
   //mappings of deposit tokens for LP assets
-  mapping(address => address) public LPDepositTokens;
+  mapping(address => address) public _LPDepositTokens;
 
   address public _treasury;
   address public booster;
@@ -274,7 +274,7 @@ contract VaultController is
     uint256 LTV,
     address oracle_address,
     uint256 liquidationIncentive
-  ) external override onlyOwner {
+  ) external onlyOwner {
     // the oracle must be registered & the token must be unregistered
     require(_oracleMaster._relays(oracle_address) != address(0x0), "oracle does not exist");
     require(_tokenAddress_tokenId[token_address] == 0, "token already registered");
@@ -502,31 +502,33 @@ contract VaultController is
     //decrease liquidator's USDa balance
     _usda.vaultControllerBurn(_msgSender(), usda_to_repurchase);
 
-    if(IBooster(booster)._tokensRegistered[asset_address] == true){
+    if(_enabledTokenLookup[asset_address] == true){
       // finally, deliver tokens to liquidator
       vault.controllerTransfer(asset_address, _treasury, ((tokens_to_liquidate * _feeBasis) /1000));
       uint256 inverse = 1000 - _feeBasis;
       vault.controllerTransfer(asset_address, _msgSender(), ((tokens_to_liquidate * inverse) / 1000));
     }
 
-    if(IBooster(booster)._lpTokensRegistered[asset_address] == true){
+    if(_enabledLPTokenLookup[asset_address] == true){
 
       //remove from booster
-      uint256 PID = IBooster(Booster).tokenToPID(token_address);
+      uint256 PID = IBooster(booster).tokenToPID(asset_address);
       IBooster(booster).withdraw(PID, tokens_to_liquidate);
 
-      address depositToken = IBooster(Booster).pidToDepositToken(PID);
+      address depositToken = IBooster(booster).pidToDepositToken(PID);
 
       //get deposit token from user
       vault.controllerTransfer(depositToken, address(this), tokens_to_liquidate);
 
+      uint256 tokenBalance = vault.readUserVirtualBalance(asset_address);
+      tokenBalance -= tokens_to_liquidate;
       //remove users virtual balance
-      vault.userVirtualBalance[asset_address] -= tokens_to_liquidate;
+      vault.setUserVirtualBalance(asset_address, tokenBalance);
 
       // finally, deliver tokens to liquidator but since we withdrew they came to this controller.
-      SafeERC20Upgradeable(asset_address).safeTransferFrom(asset_address, address(this), address(_treasury), (tokens_to_liquidate * _feeBasis) /1000);
+      //SafeERC20Upgradeable.safeTransferFrom(asset_address, address(this), address(_treasury), (tokens_to_liquidate * _feeBasis) /1000);
       uint256 inverse = 1000 - _feeBasis;
-      SafeERC20Upgradeable(asset_address).safeTransferFrom(asset_address, address(this), _msgSender(), ((tokens_to_liquidate * inverse) / 1000));
+      //SafeERC20Upgradeable.safeTransferFrom(asset_address, address(this), _msgSender(), ((tokens_to_liquidate * inverse) / 1000));
     }
     // this might not be needed. Will always be true because it is already implied by _liquidationMath.
     require(get_vault_borrowing_power(vault) <= _vaultLiability(id), "overliquidation");
@@ -780,5 +782,17 @@ contract VaultController is
 
   function treasury() public view returns (address){
     return _treasury;
+  }
+
+  function enabledLPTokenLookup(address _address) external view returns (bool) {
+    return _enabledLPTokenLookup[_address];
+  }
+
+  function enabledTokenLookup(address _address) external view returns (bool) {
+    return _enabledTokenLookup[_address];
+  }
+
+  function LPDepositTokens(address _address) external view returns (address) {
+    return _LPDepositTokens[_address];
   }
 }

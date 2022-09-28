@@ -42,7 +42,7 @@ pragma solidity 0.6.12;
 import "./interfaces.sol";
 import "./MathUtil.sol";
 import "../_external/SafeMathClassic.sol";
-import "../_external/IERC20Classic.sol";
+import "../_external/extensions/IERC20Classic.sol";
 import "../_external/extensions/AddressClassic.sol";
 import "../_external/extensions/SafeERC20Classic.sol";
 
@@ -219,7 +219,6 @@ contract BaseRewardPool {
         returns(bool)
     {
         require(amount > 0, 'RewardPool : Cannot withdraw 0');
-        uint96 userVaultID = _userPrimaryVault(msg.sender);
 
         //also withdraw from linked rewards
         for(uint i=0; i < extraRewards.length; i++){

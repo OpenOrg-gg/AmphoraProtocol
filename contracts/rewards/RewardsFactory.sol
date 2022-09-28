@@ -79,7 +79,8 @@ contract RewardFactory {
 
         //operator = booster(deposit) contract so that new crv can be added and distributed
         //reward manager = this factory so that extra incentive tokens(ex. snx) can be linked to the main managed reward pool
-        BaseRewardPool rewardPool = new BaseRewardPool(_pid,_depositToken,crv,operator, address(this), msg.sender);
+        address vaultController = IBooster(operator).vaultController();
+        BaseRewardPool rewardPool = new BaseRewardPool(_pid,_depositToken,crv,operator, address(this), msg.sender, vaultController);
         return address(rewardPool);
     }
 

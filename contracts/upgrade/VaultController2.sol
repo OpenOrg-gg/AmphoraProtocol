@@ -3,7 +3,7 @@ pragma solidity 0.8.9;
 import "../lending/VaultController.sol";
 import "./IVaultController2.sol";
 
-contract VaultController2 is VaultController, IVaultController2 {
+abstract contract VaultController2 is VaultController, IVaultController2 {
   //CHANGED extend storage
   uint256 public newThing;
 

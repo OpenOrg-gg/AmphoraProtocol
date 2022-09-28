@@ -33,4 +33,7 @@ interface IVault is VaultEvents {
   ) external;
 
   function modifyLiability(bool increase, uint256 base_amount) external returns (uint256);
+
+  function readUserVirtualBalance(address) external view returns (uint256);
+  function setUserVirtualBalance(address, uint256) external;
 }
