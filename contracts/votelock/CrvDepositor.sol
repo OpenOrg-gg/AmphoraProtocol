@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
-import "./interfaces.sol";
+import "../rewards/interfaces.sol";
 
 import "../_external/SafeMathClassic.sol";
 import "../_external/extensions/IERC20Classic.sol";
