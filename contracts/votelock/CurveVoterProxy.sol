@@ -740,7 +740,7 @@ contract CurveVoterProxy {
 
     function createLock(uint256 _value, uint256 _unlockTime) external returns(bool){
         require(msg.sender == depositor, "!auth");
-        require(isWhitelisted());
+        require(isWhitelisted(), "!whitelisted");
         IERC20(crv).safeApprove(escrow, 0);
         IERC20(crv).safeApprove(escrow, _value);
         ICurveVoteEscrow(escrow).create_lock(_value, _unlockTime);
@@ -749,19 +749,19 @@ contract CurveVoterProxy {
 
     function increaseAmount(uint256 _value) external returns(bool){
         require(msg.sender == depositor, "!auth");
+        IERC20(crv).safeApprove(escrow, 0);
+        IERC20(crv).safeApprove(escrow, _value);
         if (isWhitelisted()){
-            IERC20(crv).safeApprove(escrow, 0);
-            IERC20(crv).safeApprove(escrow, _value);
             ICurveVoteEscrow(escrow).increase_amount(_value);
-        } else{
-            IERC20(crv).transferFrom(msg.sender, address(this), _value);
-        }
+        }         
         return true;
     }
 
     function increaseTime(uint256 _value) external returns(bool){
         require(msg.sender == depositor, "!auth");
-        ICurveVoteEscrow(escrow).increase_unlock_time(_value);
+        if (isWhitelisted()){
+            ICurveVoteEscrow(escrow).increase_unlock_time(_value);
+        }         
         return true;
     }
 

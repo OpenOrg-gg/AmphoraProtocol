@@ -27,6 +27,9 @@ interface ICurveVoteEscrow {
     function withdraw() external;
     function smart_wallet_checker() external view returns (address);
     function depositFor(address, uint256) external;
+    function balanceOf(address addr, uint256 _t) external view returns (uint256);
+    function balanceOf(address addr) external view returns (uint256);
+    function locked(address addr) external view returns (uint256);
 }
 
 interface IWalletChecker {
