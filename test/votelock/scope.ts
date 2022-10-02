@@ -17,6 +17,7 @@ export class TestScope extends MainnetAddresses {
 
   usdc_minter = "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0";
   crvAddr = "0xD533a949740bb3306d119CC777fa900bA034cd52";
+  threeCrvWhaleAddr = "0x5d5d08393e5bC93078F83a6a0B9077b474B9bAD4";
   veCRVAddr = "0x5f3b5DfEb7B28CDbD7FAba78963EE202a494e2A2";
   crvWhaleAddr = "0x7Bf94e5A07131442cb5474Ff6a702FbD30c097D5"; // crv whale on mainnet
 
@@ -54,6 +55,7 @@ export class TestScope extends MainnetAddresses {
   Admin!:SignerWithAddress; // admin of contracts in testing scope
   Bank!: SignerWithAddress; //holds a ton of USDC and is not on any whitelist
   CrvWhale!: SignerWithAddress; //Curve minter
+  ThreeCrvWhale!: SignerWithAddress;
   DaoWallet!: SignerWithAddress; //Curve minter
   
 

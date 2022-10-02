@@ -2,13 +2,18 @@ import { expect, assert } from "chai";
 import { ethers, network, tenderly } from "hardhat";
 import { BN } from "../../../util/number";
 import { s } from "../scope";
-import { advanceBlockHeight, reset, mineBlock, fastForward } from "../../../util/block";
-import { ICurveVoteEscrow, CurveVoterProxy, CrvDepositor, IERC20, AmphCrvToken, ICurveToken, ISmartWalletWhitelist } from "../../../typechain-types";
+import { mineBlock, fastForward, OneDay, OneWeek } from "../../../util/block";
+import { 
+  ICurveVoteEscrow, 
+  CurveVoterProxy, 
+  CrvDepositor, 
+  AmphCrvToken, 
+  ICurveToken, 
+  ISmartWalletWhitelist,
+  IFeeDistro 
+} from "../../../typechain-types";
+import { IERC20 } from "../../../typechain-types/_external";
 // import { ceaseImpersonation, impersonateAccount } from "../../../util/impersonator";
-import { EtherscanProvider } from "@ethersproject/providers";
-import { BigNumber } from "ethers";
-import { monitorEventLoopDelay } from "perf_hooks";
-import { createImmediatelyInvokedFunctionExpression } from "typescript";
 
 //import { assert } from "console";
 
@@ -20,6 +25,7 @@ let crvVoterProxy: CurveVoterProxy;
 let crv: ICurveToken;
 let veCrv: ICurveVoteEscrow;
 let amphCrv: AmphCrvToken;
+let feeDistro: IFeeDistro;
 
 describe("Setup", () => {
 	it("connect to signers and send crv to users from crvWhale", async () => {
@@ -45,11 +51,11 @@ describe("Setup", () => {
     // const sendResult = await sendTx.wait();
     await mineBlock();
     const ethBal = (await s.CrvWhale.getBalance());
-    const sent = await crv.connect(s.CrvWhale).transfer(s.Andy.address, "1000", {gasLimit: "300000"});
+    const sent = await crv.connect(s.CrvWhale).transfer(s.Andy.address, "1000" + "000000000000000000", {gasLimit: "300000"});
     await mineBlock();
     // const result = await sent.wait();
     const bal = await crv.balanceOf(s.Andy.address);
-    expect(bal).to.equal(BN('1000'));
+    expect(bal).to.equal(BN('1000' + '000000000000000000'));
 	}); 
 
 	it("deploy contracts and approve spending of crv", async () => {
@@ -90,7 +96,7 @@ describe("Setup", () => {
     await mineBlock();
     // await operatorTx.wait();
 
-    const treasuryTx = await crvVoterProxy.connect(s.Admin).setTreasury(s.Admin.address);
+    const treasuryTx = await crvVoterProxy.connect(s.Admin).setTreasury(s.Treasury.address);
     await mineBlock();
     // await treasuryTx.wait();
 
@@ -114,14 +120,14 @@ describe("Before Whitelist", () => {
   });
 
 	it("CrvDepositor should hold crv in exchange for amphCrv", async () => {
-    expect(await crv.balanceOf(s.Andy.address)).to.equal(BN('1000'));
+    expect(await crv.balanceOf(s.Andy.address)).to.equal(BN('1000'+ '000000000000000000'));
 
-    const depositTx = await crvDepositor.connect(s.Andy)["deposit(uint256,bool)"]('1000', true, {gasLimit: "300000"});
+    const depositTx = await crvDepositor.connect(s.Andy)["deposit(uint256,bool)"]('1000' + '000000000000000000', true, {gasLimit: "300000"});
     await mineBlock();
     // await depositTx.wait();
 
-    expect(await crv.balanceOf(crvVoterProxy.address)).to.equal(BN('1000'));
-    expect(await amphCrv.balanceOf(s.Andy.address)).to.equal(BN('1000'));
+    expect(await crv.balanceOf(crvVoterProxy.address)).to.equal(BN('1000' + '000000000000000000'));
+    expect(await amphCrv.balanceOf(s.Andy.address)).to.equal(BN('1000' + '000000000000000000'));
 	});
 
 	it("should not be able to create lock", async () => {
@@ -157,9 +163,49 @@ describe("After Whitelist", () => {
   });
 
   it("should be able to deposit and increase amount", async () => {
-    await crv.connect(s.CrvWhale).transfer(s.Andy.address, "1000", {gasLimit: "300000"});
-    const depositTx = await crvDepositor.connect(s.Andy)["deposit(uint256,bool)"]('1000', true, {gasLimit: "1000000"});
+    await crv.connect(s.CrvWhale).transfer(s.Andy.address, "1000" + "000000000000000000", {gasLimit: "300000"});
+    const depositTx = await crvDepositor.connect(s.Andy)["deposit(uint256,bool)"]('1000' + '000000000000000000', true, {gasLimit: "1000000"});
     expect(await crv.balanceOf(crvVoterProxy.address)).to.equal(BN('0'));
-    expect(await amphCrv.balanceOf(s.Andy.address)).to.equal(BN('2000'));
+    expect(await amphCrv.balanceOf(s.Andy.address)).to.equal(BN('2000' + '000000000000000000'));
+    expect(Number(await veCrv["balanceOf(address)"](crvVoterProxy.address))).to.approximately(2000e18, 10e18);
+  });
+
+  it("should be able to claim fees", async () => {
+    feeDistro = await ethers.getContractAt('contracts/rewards/interfaces.sol:IFeeDistro', '0xA464e6DCda8AC41e03616F95f4BC98a13b8922Dc') as IFeeDistro; const distroAdminAddr = await feeDistro.admin();
+    await network.provider.request({
+      method: "hardhat_impersonateAccount", 
+      params: [distroAdminAddr]
+    }); 
+
+    const distroAdmin = await ethers.getSigner(distroAdminAddr);
+    await feeDistro.connect(distroAdmin).checkpoint_token();
+
+
+    const threeCrvAddr = '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490';
+    const threeCrv = await ethers.getContractAt('contracts/_external/IERC20.sol:IERC20', threeCrvAddr) as IERC20;
+    await network.provider.request({
+      method: "hardhat_impersonateAccount", 
+      params: [s.threeCrvWhaleAddr]
+    }); 
+
+    s.ThreeCrvWhale = await ethers.getSigner(s.threeCrvWhaleAddr);
+    const sendTx = await s.Frank.sendTransaction({to: s.ThreeCrvWhale.address, value: "100" + "000000000000000000"})
+    await threeCrv.balanceOf(s.ThreeCrvWhale.address)
+    await feeDistro.connect(distroAdmin).checkpoint_token();
+
+    await mineBlock();
+    // wait 2 wks.
+    await fastForward(2 * OneWeek);
+    await mineBlock();
+
+    await threeCrv.connect(s.ThreeCrvWhale).transfer(feeDistro.address, ethers.utils.parseEther("900"));
+
+    await feeDistro.connect(distroAdmin).checkpoint_token();
+
+    const initialBal = Number(await threeCrv.balanceOf(s.Treasury.address));
+
+    await crvVoterProxy.connect(s.Admin).claimFees(feeDistro.address, threeCrvAddr);
+    const postBal = Number(await threeCrv.balanceOf(s.Treasury.address));
+    expect(postBal).to.be.greaterThan(initialBal);
   });
 });

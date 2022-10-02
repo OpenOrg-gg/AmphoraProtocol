@@ -128,6 +128,8 @@ interface ICrvDepositor {
 interface IFeeDistro{
     function claim() external;
     function token() external view returns(address);
+    function admin() external view returns(address);
+    function checkpoint_token() external;
 }
 
 interface ITokenMinter{

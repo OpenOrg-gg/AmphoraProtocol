@@ -13,7 +13,7 @@ interface ICurveGauge {
     function deposit(uint256) external;
     function balanceOf(address) external view returns (uint256);
     function withdraw(uint256) external;
-    function claim_rewards() external;
+    function claim_rewards(address _addr, address _receiver) external;
     function reward_tokens(uint256) external view returns(address);//v2
     function rewarded_token() external view returns(address);//v1
 }
@@ -43,7 +43,7 @@ interface IMinter{
 }
 
 interface IFeeDistro{
-    function claim() external;
+    function claim() external returns(uint256);
 }
 
 interface IDeposit{
@@ -791,7 +791,7 @@ contract CurveVoterProxy {
         uint256 _balance = 0;
         try IMinter(mintr).mint(_gauge){
             _balance = IERC20(crv).balanceOf(address(this));
-            IERC20(crv).safeTransfer(operator, _balance);
+            IERC20(crv).safeTransfer(treasury, _balance);
         }catch{}
 
         return _balance;
@@ -799,7 +799,7 @@ contract CurveVoterProxy {
 
     function claimRewards(address _gauge) external returns(bool){
         require(msg.sender == operator, "!auth");
-        ICurveGauge(_gauge).claim_rewards();
+        ICurveGauge(_gauge).claim_rewards(address(this), treasury);
         return true;
     }
 
