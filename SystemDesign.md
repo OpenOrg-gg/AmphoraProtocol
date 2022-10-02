@@ -38,3 +38,9 @@ Since reward pools only allow us to add new tokens to the rewards distributrion 
 * The users deposit tokens are attributed to their vault.
 * Their vault has a function to claim rewards as they accrue into the vault.
 * A user can now borrow sUSD against their 2 WBTC and 10 CRV LP tokens based on the collateral factors in the system.
+
+## Things to improve:
+
+- Right now, the Booster and Vault are seperate systems. It may be cleaner to make them one system.
+
+- Currently LP tokens and regular tokens are handled seperately in the vaults. We could make all tokens use a deposit token in the vaults to make it standard.
