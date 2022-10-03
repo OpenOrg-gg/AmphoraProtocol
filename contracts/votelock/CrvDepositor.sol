@@ -24,7 +24,7 @@ contract CrvDepositor{
     address public feeManager;
     address public immutable staker;
     address public immutable minter;
-    uint256 public incentiveCrv = 0;
+    uint256 public incentiveAmph = 0;
     uint256 public unlockTime;
 
     constructor(address _staker, address _minter) public {
@@ -94,9 +94,9 @@ contract CrvDepositor{
         _lockCurve();
 
         //mint incentives
-        if(incentiveCrv > 0){
-            ITokenMinter(minter).mint(msg.sender,incentiveCrv);
-            incentiveCrv = 0;
+        if(incentiveAmph > 0){
+            ITokenMinter(minter).mint(msg.sender,incentiveAmph);
+            incentiveAmph = 0;
         }
     }
 
@@ -111,10 +111,10 @@ contract CrvDepositor{
             //lock immediately, transfer directly to staker to skip an erc20 transfer
             IERC20(crv).safeTransferFrom(msg.sender, staker, _amount);
             _lockCurve();
-            if(incentiveCrv > 0){
+            if(incentiveAmph > 0){
                 //add the incentive tokens here so they can be staked together
-                _amount = _amount.add(incentiveCrv);
-                incentiveCrv = 0;
+                _amount = _amount.add(incentiveAmph);
+                incentiveAmph = 0;
             }
         }else{
             //move tokens here
@@ -124,7 +124,7 @@ contract CrvDepositor{
             _amount = _amount.sub(callIncentive);
 
             //add to a pool for lock caller
-            incentiveCrv = incentiveCrv.add(callIncentive);
+            incentiveAmph = incentiveAmph.add(callIncentive);
         }
 
         bool depositOnly = _stakeAddress == address(0);
