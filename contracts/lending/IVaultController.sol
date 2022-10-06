@@ -25,7 +25,7 @@ interface VaultControllerEvents {
 /// @notice extends VaultControllerEvents
 interface IVaultController is VaultControllerEvents {
   // initializer
-  function initialize() external;
+  function initialize(address) external;
 
   // view functions
 
@@ -55,6 +55,8 @@ interface IVaultController is VaultControllerEvents {
 
   function checkVault(uint96 id) external view returns (bool);
 
+  function booster() external view returns (address);
+
   function enabledLPTokensLookup(address) external view returns (bool);
 
   function enabledTokensLookup(address) external view returns (bool);
@@ -77,7 +79,7 @@ interface IVaultController is VaultControllerEvents {
   function calculateInterest() external returns (uint256);
 
   // vault management business
-  function mintVault(address booster) external returns (address);
+  function mintVault() external returns (address);
 
   function liquidateVault(
     uint96 id,
@@ -104,10 +106,6 @@ interface IVaultController is VaultControllerEvents {
   function repayAllUSDa(uint96 id) external;
 
   // admin
-  function registerBooster(address booster_address) external;
-
-  function removeBooster(address booster_address) external;
-
   function pause() external;
 
   function unpause() external;
@@ -137,6 +135,4 @@ interface IVaultController is VaultControllerEvents {
     address oracle_address,
     uint256 liquidationIncentive
   ) external;
-
-  function isBooster(address booster) external view returns (bool);
 }

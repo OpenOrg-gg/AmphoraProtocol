@@ -45,9 +45,6 @@ contract Vault is IVault, Context {
   /// the vaultController in order to find the true liabilitiy
   uint256 public _baseLiability;
 
-  address public booster;
-  address[] private _depositedLPTokens;
-
   /// @notice checks if _msgSender is the controller of the vault
   modifier onlyVaultController() {
     require(_msgSender() == address(_controller), "sender not VaultController");
@@ -75,12 +72,10 @@ contract Vault is IVault, Context {
   constructor(
     uint96 id_,
     address minter_,
-    address controller_address,
-    address booster_address
+    address controller_address
   ) {
     _vaultInfo = VaultInfo(id_, minter_);
     _controller = IVaultController(controller_address);
-    booster = booster_address;
   }
 
   /// @notice minter of the vault
@@ -105,6 +100,7 @@ contract Vault is IVault, Context {
   /// @param addr address of the erc20 token
   /// @dev scales wBTC up to normal erc20 size
   function tokenBalance(address addr) external view returns (uint256) {
+    address Booster = IVaultController(_controller).booster();
     if(IVaultController(_controller).enabledLPTokensLookup(addr) == true){
       return userVirtualBalance[addr];
     } else {
@@ -112,40 +108,21 @@ contract Vault is IVault, Context {
     }
   }
 
-  /// @notice set booster
-  function setBooster(address new_booster) external onlyMinter {
-    require(IVaultController(_controller).isBooster(new_booster), "booster not registered");
-    if (booster != address(0)) {
-      // migration
-      for (uint256 i = 0; i < _depositedLPTokens.length; i++) {
-        address lp_token = _depositedLPTokens[i];
-        // withdraw LP tokens from old booster
-        uint256 pid_old = IBooster(booster).tokenToPID(lp_token);
-        IBooster(booster).withdraw(pid_old, userVirtualBalance[lp_token]);
-        // deposit LP tokens to new booster
-        uint256 pid_new = IBooster(new_booster).tokenToPID(lp_token);
-        IBooster(new_booster).deposit(pid_new, userVirtualBalance[lp_token], true);
-      }
-    }
-    booster = new_booster;
-  }
-
   /// @notice deposits tokens - only needed for LP tokens but can be used for any.
   /// @param addr - address of the erc20
   /// @param amount - amount of the erc20
   function depositErc20(address addr, uint256 amount) external {
+    address Booster = IVaultController(_controller).booster();
     if(IVaultController(_controller).enabledTokensLookup(addr) == true){
       SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(addr), _msgSender(), address(this), amount);
     }
 
     if(IVaultController(_controller).enabledLPTokensLookup(addr) == true){
-      require(IVaultController(_controller).isBooster(booster), "booster not registered");
       address depositToken = IVaultController(_controller).LPDepositTokens(addr);
       SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(addr), _msgSender(), address(this), amount);
-      uint256 PID = IBooster(booster).tokenToPID(addr);
-      IBooster(booster).deposit(PID, amount, true);
+      uint256 PID = IBooster(Booster).tokenToPID(addr);
+      IBooster(Booster).deposit(PID, amount, true);
       userVirtualBalance[addr] += amount;
-      _depositedLPTokens.push(addr);
     }
   }
 
@@ -157,6 +134,7 @@ contract Vault is IVault, Context {
   /// @param token_address address of erc20 token
   /// @param amount amount of erc20 token to withdraw
   function withdrawErc20(address token_address, uint256 amount) external override onlyMinter {
+    address Booster = IVaultController(_controller).booster();
     if(IVaultController(_controller).enabledTokensLookup(token_address) == true){
       // transfer the token to the owner
       SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token_address), _msgSender(), amount);
@@ -166,20 +144,11 @@ contract Vault is IVault, Context {
     }
 
     if(IVaultController(_controller).enabledLPTokensLookup(token_address) == true){
-      require(IVaultController(_controller).isBooster(booster), "booster not registered");
       require(userVirtualBalance[token_address] >= amount, "You don't have that balance");
-      uint256 PID = IBooster(booster).tokenToPID(token_address);
+      uint256 PID = IBooster(Booster).tokenToPID(token_address);
       userVirtualBalance[token_address] -= amount;
-      IBooster(booster).withdraw(PID, amount);
+      IBooster(Booster).withdraw(PID, amount);
       require(_controller.checkVault(_vaultInfo.id), "over-withdrawal");
-      // remove token_address from the _depositedLPTokens
-      for (uint256 i = 0; i < _depositedLPTokens.length; i++) {
-        if (_depositedLPTokens[i] == token_address) {
-          _depositedLPTokens[i] = _depositedLPTokens[_depositedLPTokens.length - 1];
-          _depositedLPTokens.pop();
-          break;
-        }
-      }
       emit Withdraw(token_address, amount);
     }
   }

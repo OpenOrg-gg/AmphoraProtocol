@@ -11,8 +11,6 @@ interface VaultEvents {
 /// @title Vault Interface
 /// @notice extends VaultEvents
 interface IVault is VaultEvents {
-  /// @notice booster address
-  function booster() external view returns (address);
   /// @notice value of _baseLiability
   function baseLiability() external view returns (uint256);
   /// @notice value of _vaultInfo.minter
