@@ -60,7 +60,9 @@ contract VaultController is
   mapping(address => address) public _LPDepositTokens;
 
   address public _treasury;
-  address public booster;
+
+  mapping(address => bool) public boosters;
+
   uint256 public _feeBasis;
   OracleMaster public _oracleMaster;
   CurveMaster public _curveMaster;
@@ -92,7 +94,7 @@ contract VaultController is
   }
 
   /// @notice no initialization arguments.
-  function initialize(address _booster) external override initializer {
+  function initialize() external override initializer {
     __Ownable_init();
     __Pausable_init();
     _interest = Interest(uint64(block.timestamp), 1e18);
@@ -102,7 +104,6 @@ contract VaultController is
     _vaultsMinted = 0;
     _tokensRegistered = 0;
     _totalBaseLiability = 0;
-    _booster = booster;
   }
 
   /// @notice get current interest factor
@@ -153,13 +154,21 @@ contract VaultController is
     return _tokensRegistered;
   }
 
+  /// @notice check if a address is a booster
+  /// @return true if the address is a booster, false if it is not
+  function isBooster(address booster) public view returns (bool) {
+    return boosters[booster];
+  }
+
   /// @notice create a new vault
   /// @return address of the new vault
-  function mintVault() public override returns (address) {
+  function mintVault(address booster) public override returns (address) {
+    // ensure booster is in the boosters list
+    require(isBooster(booster), "booster not registered");
     // increment  minted vaults
     _vaultsMinted = _vaultsMinted + 1;
     // mint the vault itself, deploying the contract
-    address vault_address = address(new Vault(_vaultsMinted, _msgSender(), address(this)));
+    address vault_address = address(new Vault(_vaultsMinted, _msgSender(), address(this), booster));
     // add the vault to our system
     _vaultId_vaultAddress[_vaultsMinted] = vault_address;
 
@@ -170,6 +179,16 @@ contract VaultController is
     emit NewVault(vault_address, _vaultsMinted, _msgSender());
     // return the vault address, allowing the caller to automatically find their vault
     return vault_address;
+  }
+
+  /// @notice add a new booster to the vault controller, vaults can choose to migrate to the new booster after adding.
+  function registerBooster(address booster_address) external override onlyOwner {
+    boosters[booster_address] = true;
+  }
+
+  /// @notice remove a booster from the vault controller, vaults can choose to migrate to the new booster after removing.
+  function removeBooster(address booster_address) external override onlyOwner {
+      boosters[booster_address] = false;
   }
 
   /// @notice pause the contract
@@ -505,13 +524,14 @@ contract VaultController is
     if(_enabledTokenLookup[asset_address] == true){
       // finally, deliver tokens to liquidator
       vault.controllerTransfer(asset_address, _treasury, ((tokens_to_liquidate * _feeBasis) /1000));
-      uint256 inverse = 1000 - _feeBasis;
-      vault.controllerTransfer(asset_address, _msgSender(), ((tokens_to_liquidate * inverse) / 1000));
+      vault.controllerTransfer(asset_address, _msgSender(), ((tokens_to_liquidate * (1000 - _feeBasis)) / 1000));
     }
 
     if(_enabledLPTokenLookup[asset_address] == true){
-
       //remove from booster
+      address booster = vault.booster();
+      require(booster != address(0), "Booster not set");
+      require(isBooster(booster), "Booster not registered");
       uint256 PID = IBooster(booster).tokenToPID(asset_address);
       IBooster(booster).withdraw(PID, tokens_to_liquidate);
 
@@ -527,8 +547,7 @@ contract VaultController is
 
       // finally, deliver tokens to liquidator but since we withdrew they came to this controller.
       IERC20(asset_address).transferFrom(address(this), address(_treasury), (tokens_to_liquidate * _feeBasis) /1000);
-      uint256 inverse = 1000 - _feeBasis;
-      IERC20(asset_address).transferFrom(address(this), _msgSender(), ((tokens_to_liquidate * inverse) / 1000));
+      IERC20(asset_address).transferFrom(address(this), _msgSender(), ((tokens_to_liquidate * (1000 - _feeBasis)) / 1000));
     }
     // this might not be needed. Will always be true because it is already implied by _liquidationMath.
     require(get_vault_borrowing_power(vault) <= _vaultLiability(id), "overliquidation");
