@@ -4,8 +4,6 @@ pragma solidity 0.8.9;
 // @title Vault Events
 /// @notice interface which contains any events which the Vault contract emits
 interface VaultEvents {
-  event Deposit(address token_address, uint256 amount);
-  event Withdraw(address token_address, uint256 amount);
 }
 
 /// @title Vault Interface
@@ -22,7 +20,6 @@ interface IVault is VaultEvents {
 
   // business logic
 
-  function withdrawErc20(address token_address, uint256 amount) external;
   function delegateCompLikeTo(address compLikeDelegatee, address compLikeToken) external;
 
   // administrative functions
@@ -33,7 +30,4 @@ interface IVault is VaultEvents {
   ) external;
 
   function modifyLiability(bool increase, uint256 base_amount) external returns (uint256);
-
-  function readUserVirtualBalance(address) external view returns (uint256);
-  function setUserVirtualBalance(address, uint256) external;
 }

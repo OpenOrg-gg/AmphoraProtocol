@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.9;
 
 interface ICurveGauge {
     function deposit(uint256) external;
@@ -35,7 +34,7 @@ interface IWalletChecker {
 
 interface IVoting{
     function vote(uint256, bool, bool) external; //voteId, support, executeIfDecided
-    function getVote(uint256) external view returns(bool,bool,uint64,uint64,uint64,uint64,uint256,uint256,uint256,bytes memory); 
+    function getVote(uint256) external view returns(bool,bool,uint64,uint64,uint64,uint64,uint256,uint256,uint256,bytes memory);
     function vote_for_gauge_weights(address,uint256) external;
 }
 
@@ -168,20 +167,6 @@ interface ITokenFactory{
     function CreateDepositToken(address) external returns(address);
 }
 
-interface IPools{
-    function addPool(address _lptoken, address _gauge, uint256 _stashVersion) external returns(bool);
-    function forceAddPool(address _lptoken, address _gauge, uint256 _stashVersion) external returns(bool);
-    function shutdownPool(uint256 _pid) external returns(bool);
-    function poolInfo(uint256) external view returns(address,address,address,address,address,bool);
-    function poolLength() external view returns (uint256);
-    function gaugeMap(address) external view returns(bool);
-    function setPoolManager(address _poolM) external;
-}
-
-interface IVestedEscrow{
-    function fund(address[] calldata _recipient, uint256[] calldata _amount) external returns(bool);
-}
-
 interface IConvexRewards{
     function stakeFor(address, uint256) external;
     function stake( uint256) external;
@@ -195,174 +180,4 @@ interface IConvexRewards{
     function extraRewards(uint256 _pid) external view returns (address);
     function rewardToken() external view returns (address);
     function balanceOf(address _account) external view returns (uint256);
-}
-interface IBooster{
-    function poolInfo(uint256) external view returns (address, address, address, address, address, address, uint32, bool);
-    function lockIncentive() external view returns (uint256);
-    function stakerIncentive() external view returns (uint256);
-    function earmarkIncentive() external view returns (uint256);
-    function platformFee() external view returns (uint256);
-    function treasury() external view returns (address);
-    function owner() external view returns (address);
-    function poolManager() external view returns (address);
-    function rewardFactory() external view returns (address);
-    function stashFactory() external view returns (address);
-    function tokenFactory() external view returns (address);
-    function rewardClaimed(uint256 _pid, address _tokenEarned, address _address, uint256 _amount) external returns(bool);
-    function FEE_DENOMINATOR() external view returns (uint256);
-    function lockIncentiveReciever() external view returns (address);
-    function stakerIncentiveReciever() external view returns (address);
-    function platformFeeReciever() external view returns (address);
-    function vaultController() external view returns (address);
-    function pidToDepositToken(uint256) external view returns (address);
-}
-interface VaultControllerEvents {
-  event InterestEvent(uint64 epoch, uint192 amount, uint256 curve_val);
-  event NewProtocolFee(uint256 protocol_fee);
-  event RegisteredErc20(address token_address, uint256 LTVe4, address oracle_address, uint256 liquidationIncentivee4, bool isLP);
-  event UpdateRegisteredErc20(
-    address token_address,
-    uint256 LTVe4,
-    address oracle_address,
-    uint256 liquidationIncentivee4
-  );
-  event NewVault(address vault_address, uint256 vaultId, address vaultOwner);
-  event RegisterOracleMaster(address oracleMasterAddress);
-  event RegisterCurveMaster(address curveMasterAddress);
-  event BorrowUSDl(uint256 vaultId, address vaultAddress, uint256 borrowAmount);
-  event RepayUSDl(uint256 vaultId, address vaultAddress, uint256 repayAmount);
-  event Liquidate(uint256 vaultId, address asset_address, uint256 usdl_to_repurchase, uint256 tokens_to_liquidate);
-  event Deposited(uint256 vaultId, address asset_address, uint256 amount);
-  event Withdrawn(uint256 vaultId, address asset_address, uint256 amount);
-}
-
-/// @title VaultController Interface
-/// @notice extends VaultControllerEvents
-interface IVaultController is VaultControllerEvents {
-  // initializer
-  function initialize(address convex, address tokenFactory, address rewardFactory, address stashFactory) external;
-
-  // view functions
-
-  function FEE_DENOMINATOR() external view returns (uint256);
-
-  function lockIncentive() external view returns (uint256);
-  function stakerIncentive() external view returns (uint256);
-  function earmarkIncentive() external view returns (uint256);
-  function platformFee() external view returns (uint256);
-
-  function lockIncentiveReciever() external view returns (address);
-  function stakerIncentiveReciever() external view returns (address);
-  function platformFeeReciever() external view returns (address);
-
-  function tokensRegistered() external view returns (uint256);
-
-  function vaultsMinted() external view returns (uint96);
-
-  function vaultControllerRegistry() external view returns (address);
-
-  function treasury() external view returns (address);
-
-  function lastInterestTime() external view returns (uint64);
-
-  function totalBaseLiability() external view returns (uint192);
-
-  function interestFactor() external view returns (uint192);
-
-  function protocolFee() external view returns (uint192);
-
-  function vaultAddress(uint96 id) external view returns (address);
-
-  function vaultIDs(address wallet) external view returns (uint96[] memory);
-
-  function amountToSolvency(uint96 id) external view returns (uint256);
-
-  function vaultLiability(uint96 id) external view returns (uint192);
-
-  function vaultBorrowingPower(uint96 id) external view returns (uint192);
-
-  function tokensToLiquidate(uint96 id, address token) external view returns (uint256);
-
-  function checkVault(uint96 id) external view returns (bool);
-
-  function getVaultAddress(uint96 _id) external view returns (address);
-
-  function isEnabledLPToken(address) external view returns (bool);
-
-  struct VaultSummary {
-    uint96 id;
-    uint192 borrowingPower;
-    uint192 vaultLiability;
-    address[] tokenAddresses;
-    uint256[] tokenBalances;
-  }
-
-  function vaultSummaries(uint96 start, uint96 stop) external view returns (VaultSummary[] memory);
-
-  function poolInfo(uint256) external view returns(address,address,address,address);
-
-  // interest calculations
-  function calculateInterest() external returns (uint256);
-
-  // vault management business
-  function mintVault() external returns (address);
-  function mintVaultFor(address _address) external returns (address);
-
-
-  function liquidateVault(
-    uint96 id,
-    address asset_address,
-    uint256 tokenAmount
-  ) external returns (uint256);
-
-  function borrowUsdl(uint96 id, uint192 amount) external;
-
-  function borrowUSDLto(
-    uint96 id,
-    uint192 amount,
-    address target
-  ) external;
-
-  function borrowUSDCto(
-    uint96 id,
-    uint192 usdc_amount,
-    address target
-  ) external;
-
-  function repayUSDl(uint96 id, uint192 amount) external;
-
-  function repayAllUSDl(uint96 id) external;
-
-  // admin
-  function rewardClaimed(uint256 _pid, address _tokenEarned, address _address, uint256 _amount) external;
-
-  function pause() external;
-
-  function unpause() external;
-
-  function getOracleMaster() external view returns (address);
-
-  function registerOracleMaster(address master_oracle_address) external;
-
-  function getCurveMaster() external view returns (address);
-
-  function registerCurveMaster(address master_curve_address) external;
-
-  function changeProtocolFee(uint192 new_protocol_fee) external;
-
-  function registerErc20(
-    address token_address,
-    uint256 LTV,
-    address oracle_address,
-    uint256 liquidationIncentive
-  ) external;
-
-  function registerUSDl(address usdl_address) external;
-
-  function updateRegisteredErc20(
-    address token_address,
-    uint256 LTV,
-    address oracle_address,
-    uint256 liquidationIncentive
-  ) external;
 }
