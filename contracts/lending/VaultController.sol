@@ -617,7 +617,6 @@ contract VaultController is
     PoolInfo memory pool_info = poolInfo[_tokenAddress_tokenId[asset_address] - 1];
     TokenInfo memory token_info = _tokenId_tokenInfo[_tokenAddress_tokenId[asset_address]];
     // withdraw and burn depositToken from reward pool
-    IRewards(pool_info.rewardPool).withdraw(address(vault), tokens_to_liquidate);
     ITokenMinter(pool_info.depositToken).burn(address(this), tokens_to_liquidate);
     // withdraw token from the wrapped token
     WrappedToken(token_info.wrappedTokenAddress).withdraw(address(vault), tokens_to_liquidate);
