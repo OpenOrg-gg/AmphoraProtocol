@@ -276,7 +276,7 @@ interface IBooster{
 interface VaultControllerEvents {
   event InterestEvent(uint64 epoch, uint192 amount, uint256 curve_val);
   event NewProtocolFee(uint256 protocol_fee);
-  event RegisteredErc20(address token_address, uint256 LTVe4, address oracle_address, uint256 liquidationIncentivee4);
+  event RegisteredErc20(address token_address, uint256 LTVe4, address oracle_address, uint256 liquidationIncentivee4, bool isLP);
   event UpdateRegisteredErc20(
     address token_address,
     uint256 LTVe4,
@@ -289,15 +289,28 @@ interface VaultControllerEvents {
   event BorrowUSDl(uint256 vaultId, address vaultAddress, uint256 borrowAmount);
   event RepayUSDl(uint256 vaultId, address vaultAddress, uint256 repayAmount);
   event Liquidate(uint256 vaultId, address asset_address, uint256 usdl_to_repurchase, uint256 tokens_to_liquidate);
+  event Deposited(uint256 vaultId, address asset_address, uint256 amount);
+  event Withdrawn(uint256 vaultId, address asset_address, uint256 amount);
 }
 
 /// @title VaultController Interface
 /// @notice extends VaultControllerEvents
 interface IVaultController is VaultControllerEvents {
   // initializer
-  function initialize() external;
+  function initialize(address convex, address tokenFactory, address rewardFactory, address stashFactory) external;
 
   // view functions
+
+  function FEE_DENOMINATOR() external view returns (uint256);
+
+  function lockIncentive() external view returns (uint256);
+  function stakerIncentive() external view returns (uint256);
+  function earmarkIncentive() external view returns (uint256);
+  function platformFee() external view returns (uint256);
+
+  function lockIncentiveReciever() external view returns (address);
+  function stakerIncentiveReciever() external view returns (address);
+  function platformFeeReciever() external view returns (address);
 
   function tokensRegistered() external view returns (uint256);
 
@@ -331,13 +344,7 @@ interface IVaultController is VaultControllerEvents {
 
   function getVaultAddress(uint96 _id) external view returns (address);
 
-  function booster() external view returns (address);
-
-  function enabledLPTokensLookup(address) external view returns (bool);
-
-  function enabledTokensLookup(address) external view returns (bool);
-
-  function LPDepositTokens(address) external view returns (address);
+  function isEnabledLPToken(address) external view returns (bool);
 
   struct VaultSummary {
     uint96 id;
@@ -349,12 +356,15 @@ interface IVaultController is VaultControllerEvents {
 
   function vaultSummaries(uint96 start, uint96 stop) external view returns (VaultSummary[] memory);
 
+  function poolInfo(uint256) external view returns(address,address,address,address);
+
   // interest calculations
   function calculateInterest() external returns (uint256);
 
   // vault management business
   function mintVault() external returns (address);
   function mintVaultFor(address _address) external returns (address);
+
 
   function liquidateVault(
     uint96 id,
@@ -381,6 +391,8 @@ interface IVaultController is VaultControllerEvents {
   function repayAllUSDl(uint96 id) external;
 
   // admin
+  function rewardClaimed(uint256 _pid, address _tokenEarned, address _address, uint256 _amount) external;
+
   function pause() external;
 
   function unpause() external;

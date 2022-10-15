@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
+import "./_external/IERC20Metadata.sol";
 import "./IUSDA.sol";
 
 import "./token/UFragments.sol";
@@ -76,19 +77,19 @@ contract USDA is Initializable, PausableUpgradeable, UFragments, IUSDA, Exponent
 
   /// @notice getter for name
   /// @return name of token
-  function name() public view override(IERC20Metadata, ERC20Detailed) returns (string memory) {
+  function name() public view override(IUSDA, ERC20Detailed) returns (string memory) {
     return super.name();
   }
 
   /// @notice getter for symbol
   /// @return symbol for token
-  function symbol() public view override(IERC20Metadata, ERC20Detailed) returns (string memory) {
+  function symbol() public view override(IUSDA, ERC20Detailed) returns (string memory) {
     return super.symbol();
   }
 
   /// @notice getter for decimals
   /// @return decimals for token
-  function decimals() public view override(IERC20Metadata, ERC20Detailed) returns (uint8) {
+  function decimals() public view override(IUSDA, ERC20Detailed) returns (uint8) {
     return super.decimals();
   }
 

@@ -15,7 +15,7 @@ interface IRewardHook {
 //Unlike Convex style Stashes, this Stash is designed to be generic for any protocol.
 //A primary reward is declared for each BaseRewardPool
 //Fees are also taken off when processing the stash, and then go straight to reward pools.
-//Nothing is returned to the Booster in order to keep logic modular for supporting any new protocol.
+//Nothing is returned to the Vault controller in order to keep logic modular for supporting any new protocol.
 
 contract ExtraRewardStashConvex {
     using SafeERC20 for IERC20;
@@ -30,8 +30,8 @@ contract ExtraRewardStashConvex {
     address public staker;
     address public newRewardPool;
     address public rewardFactory;
-    address public Booster;
-   
+    address public vaultController;
+
     mapping(address => uint256) public historicalRewards;
     bool public hasRedirected;
     bool public hasCurveRewards;
@@ -48,14 +48,14 @@ contract ExtraRewardStashConvex {
     constructor() public {
     }
 
-    function initialize(uint256 _pid, address _operator, address _staker, address _newRewardPool, address _rFactory, address _booster) external {
+    function initialize(uint256 _pid, address _operator, address _staker, address _newRewardPool, address _rFactory, address _vaultController) external {
         require(newRewardPool == address(0),"!init");
         pid = _pid;
         operator = _operator;
         staker = _staker;
         newRewardPool = _newRewardPool;
         rewardFactory = _rFactory;
-        Booster = _booster;
+        vaultController = _vaultController;
     }
 
     function getName() external pure returns (string memory) {
@@ -84,7 +84,7 @@ contract ExtraRewardStashConvex {
     //register an extra reward token to be handled
     // (any new incentive that is not directly on curve gauges)
     function setExtraReward(address _token) external{
-        //owner of booster can set extra rewards
+        //owner of vault controller can set extra rewards
         require(IDeposit(operator).owner() == msg.sender, "!owner");
         setToken(_token);
     }
@@ -100,7 +100,7 @@ contract ExtraRewardStashConvex {
             //check if primary
             if(_token != primaryReward){
                 //create new reward contract (for NON-primary tokens only)
-                (,,,address mainRewardContract,,,,) = IBooster(Booster).poolInfo(pid);
+                (,,,address mainRewardContract) = IVaultController(vaultController).poolInfo(pid);
                 address rewardContract = IRewardFactory(rewardFactory).CreateTokenRewards(
                     _token,
                     mainRewardContract,
@@ -116,7 +116,7 @@ contract ExtraRewardStashConvex {
     //send all extra rewards to their reward contracts
     function processStash() external returns(bool){
         require(msg.sender == operator, "!operator");
-        (,,,address mainRewardContract,,,,) = IBooster(Booster).poolInfo(pid);
+        (,,,address mainRewardContract) = IVaultController(vaultController).poolInfo(pid);
         uint256 tCount = tokenList.length;
         for(uint i=0; i < tCount; i++){
             TokenInfo storage t = tokenInfo[tokenList[i]];
@@ -125,25 +125,37 @@ contract ExtraRewardStashConvex {
             
             uint256 amount = IERC20(token).balanceOf(address(this));
             if (amount > 0) {
-                IBooster(Booster).rewardClaimed(pid,token,mainRewardContract,amount);
-                //booster fees
-                uint256 lockIncentiveAmount = IERC20(token).balanceOf(address(this)).mul(IBooster(Booster).lockIncentive()).div(IBooster(Booster).FEE_DENOMINATOR());
-                uint256 stakerIncentiveAmount = IERC20(token).balanceOf(address(this)).mul(IBooster(Booster).stakerIncentive()).div(IBooster(Booster).FEE_DENOMINATOR());
-                uint256 platformFeeAmount = IERC20(token).balanceOf(address(this)).mul(IBooster(Booster).platformFee()).div(IBooster(Booster).FEE_DENOMINATOR());
+                IVaultController(vaultController).rewardClaimed(pid,token,mainRewardContract,amount);
+                // fees
+                uint256 lockIncentiveAmount = IERC20(token).balanceOf(address(this)).mul(
+                    IVaultController(vaultController).lockIncentive()
+                ).div(
+                    IVaultController(vaultController).FEE_DENOMINATOR()
+                );
+                uint256 stakerIncentiveAmount = IERC20(token).balanceOf(address(this)).mul(
+                    IVaultController(vaultController).stakerIncentive()
+                ).div(
+                    IVaultController(vaultController).FEE_DENOMINATOR()
+                );
+                uint256 platformFeeAmount = IERC20(token).balanceOf(address(this)).mul(
+                    IVaultController(vaultController).platformFee()
+                ).div(
+                    IVaultController(vaultController).FEE_DENOMINATOR()
+                );
 
                 uint256 remainder = amount.sub(lockIncentiveAmount).sub(stakerIncentiveAmount).sub(platformFeeAmount);
                 historicalRewards[token] = historicalRewards[token].add(remainder);
 
                 if(token == primaryReward){
-                    IERC20(token).transfer(IBooster(Booster).lockIncentiveReciever(), lockIncentiveAmount);
-                    IERC20(token).transfer(IBooster(Booster).stakerIncentiveReciever(), stakerIncentiveAmount);
-                    IERC20(token).transfer(IBooster(Booster).platformFeeReciever(), platformFeeAmount);
+                    IERC20(token).transfer(IVaultController(vaultController).lockIncentiveReciever(), lockIncentiveAmount);
+                    IERC20(token).transfer(IVaultController(vaultController).stakerIncentiveReciever(), stakerIncentiveAmount);
+                    IERC20(token).transfer(IVaultController(vaultController).platformFeeReciever(), platformFeeAmount);
                     IERC20(token).transfer(mainRewardContract, remainder);
                     IRewards(mainRewardContract).queueNewRewards(remainder);
                 } else {
-                    IERC20(token).transfer(IBooster(Booster).lockIncentiveReciever(), lockIncentiveAmount);
-                    IERC20(token).transfer(IBooster(Booster).stakerIncentiveReciever(), stakerIncentiveAmount);
-                    IERC20(token).transfer(IBooster(Booster).platformFeeReciever(), platformFeeAmount);
+                    IERC20(token).transfer(IVaultController(vaultController).lockIncentiveReciever(), lockIncentiveAmount);
+                    IERC20(token).transfer(IVaultController(vaultController).stakerIncentiveReciever(), stakerIncentiveAmount);
+                    IERC20(token).transfer(IVaultController(vaultController).platformFeeReciever(), platformFeeAmount);
                     //add to reward contract
             	    address rewards = t.rewardAddress;
             	    if(rewards == address(0)) continue;

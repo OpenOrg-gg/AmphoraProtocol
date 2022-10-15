@@ -61,7 +61,6 @@ contract BaseRewardPool {
     address public operator;
     address public rewardManager;
     address public vaultController;
-    address public Booster;
 
     uint256 public pid;
     uint256 public periodFinish = 0;
@@ -91,7 +90,6 @@ contract BaseRewardPool {
         address rewardToken_,
         address operator_,
         address rewardManager_,
-        address booster_,
         address vaultController_
     ) public {
         pid = pid_;

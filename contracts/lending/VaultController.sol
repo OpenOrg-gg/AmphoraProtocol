@@ -2,6 +2,9 @@
 
 pragma solidity 0.8.9;
 
+import "./interfaces.sol";
+import "./WrappedToken.sol";
+
 import "../IUSDA.sol";
 
 import "./Vault.sol";
@@ -28,39 +31,64 @@ contract VaultController is
   ExponentialNoError,
   OwnableUpgradeable
 {
+  using SafeERC20 for IERC20;
+
   // mapping of vault id to vault address
   mapping(uint96 => address) public _vaultId_vaultAddress;
 
   //mapping of wallet address to vault IDs []
   mapping(address => uint96[]) public _wallet_vaultIDs;
 
-  // mapping of token address to token id
+  // mapping of token address to token info
   mapping(address => uint256) public _tokenAddress_tokenId;
 
-  //mapping of token id to address
-  mapping(uint256 => address) public _tokenId_tokenAddress;
+  // mapping of token id to token info
+  struct TokenInfo {
+    bool isLP;
+    address tokenAddress;
+    address oracleAddress;
+    address wrappedTokenAddress;
+    uint256 LTV;
+    uint256 liquidationIncentive;
+  }
+  mapping(uint256 => TokenInfo) public _tokenId_tokenInfo;
+  // when getting the live price of the underlying token of the wrapped token,
+  // we need a mapping from the wrapped token address to the underlying token address
+  mapping(address => address) public _wrappedTokenAddress_tokenAddress;
 
-  //mapping of tokenId to the LTV*1
-  mapping(uint256 => uint256) public _tokenId_tokenLTV;
+  struct PoolInfo {
+    address depositToken;
+    address gauge;
+    address stash;
+    address rewardPool;
+  }
+  PoolInfo[] public poolInfo;
+  address public _convex;
+  address public _rewardFactory;
+  address public _tokenFactory;
+  address public _stashFactory;
 
-  //mapping of tokenId to its corresponding oracleAddress (which are addresses)
-  mapping(uint256 => address) public _tokenId_oracleAddress;
+  address public stakerRewards;
+  address public lockRewards;
+  address public masterMinter;
 
-  //mapping of token address to its corresponding liquidation incentive
-  mapping(address => uint256) public _tokenAddress_liquidationIncentive;
+  address public lockIncentiveReciever;
+  address public stakerIncentiveReciever;
+  address public platformFeeReciever;
+
+  uint256 public lockIncentive = 1000; //incentive to crv stakers //this is likely cvxCRV
+  uint256 public stakerIncentive = 450; //incentive to native token stakers //what is native incentive?
+  uint256 public earmarkIncentive = 50; //incentive to users who spend gas to make calls
+  uint256 public platformFee = 0; //possible fee to build treasury
+  uint256 public constant MaxFees = 2000;
+  uint256 public constant FEE_DENOMINATOR = 10000;
 
   address[] public _enabledTokens;
-  address[] public _enabledLPTokens;
 
   //mappings of the enabled tokens for gas efficient single lookup
   mapping(address => bool) public _enabledTokenLookup;
-  mapping(address => bool) public _enabledLPTokenLookup;
-
-  //mappings of deposit tokens for LP assets
-  mapping(address => address) public _LPDepositTokens;
 
   address public _treasury;
-  address public booster;
   uint256 public _feeBasis;
   OracleMaster public _oracleMaster;
   CurveMaster public _curveMaster;
@@ -92,7 +120,12 @@ contract VaultController is
   }
 
   /// @notice no initialization arguments.
-  function initialize(address _booster) external override initializer {
+  function initialize(
+    address convex,
+    address tokenFactory,
+    address rewardFactory,
+    address stashFactory
+  ) external override initializer {
     __Ownable_init();
     __Pausable_init();
     _interest = Interest(uint64(block.timestamp), 1e18);
@@ -102,7 +135,10 @@ contract VaultController is
     _vaultsMinted = 0;
     _tokensRegistered = 0;
     _totalBaseLiability = 0;
-    _booster = booster;
+    _convex = convex;
+    _tokenFactory = tokenFactory;
+    _rewardFactory = rewardFactory;
+    _stashFactory = stashFactory;
   }
 
   /// @notice get current interest factor
@@ -214,6 +250,37 @@ contract VaultController is
     emit RegisterCurveMaster(master_curve_address);
   }
 
+  function setFactories(address _rfactory, address _sfactory, address _tfactory) external onlyOwner {
+    //Unlike Convex, we leave these open to allow future upgrades to support new protocols
+    _rewardFactory = _rfactory;
+    _tokenFactory = _tfactory;
+    //stash factory should be considered more safe to change
+    //updating may be required to handle new types of gauges
+    _stashFactory = _sfactory;
+  }
+
+  function setRewardContracts(address _rewards, address _stakerRewards) external onlyOwner {
+    //also add flexibility for rewards.
+    lockRewards = _rewards;
+    stakerRewards = _stakerRewards;
+  }
+
+  function setFees(uint256 _lockFees, uint256 _stakerFees, uint256 _callerFees, uint256 _platform) external onlyOwner {
+    uint256 total = _lockFees + _stakerFees + _callerFees + _platform;
+    require(total <= MaxFees, ">MaxFees");
+
+    //values must be within certain ranges
+    if(_lockFees >= 1000 && _lockFees <= 1500
+    && _stakerFees >= 300 && _stakerFees <= 600
+    && _callerFees >= 10 && _callerFees <= 100
+      && _platform <= 200){
+      lockIncentive = _lockFees;
+      stakerIncentive = _stakerFees;
+      earmarkIncentive = _callerFees;
+      platformFee = _platform;
+    }
+  }
+
   /// @notice update the protocol fee
   /// @param new_protocol_fee protocol fee in terms of 1e18=100%
   function changeProtocolFee(uint192 new_protocol_fee) external override onlyOwner {
@@ -240,61 +307,52 @@ contract VaultController is
     address token_address,
     uint256 LTV,
     address oracle_address,
-    uint256 liquidationIncentive
+    uint256 liquidationIncentive,
+    address gauge,
+    uint32 subPID,
+    bool isLP
   ) external override onlyOwner {
     // the oracle must be registered & the token must be unregistered
     require(_oracleMaster._relays(oracle_address) != address(0x0), "oracle does not exist");
     require(_tokenAddress_tokenId[token_address] == 0, "token already registered");
+    // check reward pool params
+    require(gauge != address(0) && token_address != address(0),"!param");
     //LTV must be compatible with liquidation incentive
     require(LTV < (expScale - liquidationIncentive), "incompatible LTV");
     // increment the amount of registered token
     _tokensRegistered = _tokensRegistered + 1;
     // set & give the token an id
     _tokenAddress_tokenId[token_address] = _tokensRegistered;
-    //set the inverse
-    _tokenId_tokenAddress[_tokensRegistered] = token_address;
-    // set the tokens oracle
-    _tokenId_oracleAddress[_tokensRegistered] = oracle_address;
-    // set the tokens ltv
-    _tokenId_tokenLTV[_tokensRegistered] = LTV;
-    // set the tokens liquidation incentive
-    _tokenAddress_liquidationIncentive[token_address] = liquidationIncentive;
+    // create new wrapped token
+    address wrapped_token_address = address(
+      new WrappedToken(address(this), token_address, _convex, subPID, isLP)
+    );
+    _wrappedTokenAddress_tokenAddress[wrapped_token_address] = token_address;
+    // create new pool
+    address depositToken = ITokenFactory(_tokenFactory).CreateDepositToken(token_address);
+    address rewardPool = IRewardFactory(_rewardFactory).CreateCrvRewards(_tokensRegistered, depositToken);
+    address stash = IStashFactory(_stashFactory).CreateStash(_tokensRegistered, rewardPool, wrapped_token_address);
+    poolInfo.push(
+        PoolInfo({
+          depositToken: depositToken,
+          gauge: gauge,
+          stash: stash,
+          rewardPool: rewardPool
+        })
+    );
+    //set the token info
+    _tokenId_tokenInfo[_tokensRegistered] = TokenInfo(
+      isLP,
+      token_address,
+      oracle_address,
+      wrapped_token_address,
+      LTV,
+      liquidationIncentive
+    );
     // finally, add the token to the array of enabled tokens
     _enabledTokens.push(token_address);
-    emit RegisteredErc20(token_address, LTV, oracle_address, liquidationIncentive);
-  }
-
-    /// @notice register a new token to be used as collateral
-  /// @param token_address token to register
-  /// @param LTV LTV of the token, 1e18=100%
-  /// @param oracle_address oracle to attach to the token
-  /// @param liquidationIncentive liquidation penalty for the token, 1e18=100%
-  function registerLPErc20(
-    address token_address,
-    uint256 LTV,
-    address oracle_address,
-    uint256 liquidationIncentive
-  ) external onlyOwner {
-    // the oracle must be registered & the token must be unregistered
-    require(_oracleMaster._relays(oracle_address) != address(0x0), "oracle does not exist");
-    require(_tokenAddress_tokenId[token_address] == 0, "token already registered");
-    //LTV must be compatible with liquidation incentive
-    require(LTV < (expScale - liquidationIncentive), "incompatible LTV");
-    // increment the amount of registered token
-    _tokensRegistered = _tokensRegistered + 1;
-    // set & give the token an id
-    _tokenAddress_tokenId[token_address] = _tokensRegistered;
-    //set the inverse
-    _tokenId_tokenAddress[_tokensRegistered] = token_address;
-    // set the tokens oracle
-    _tokenId_oracleAddress[_tokensRegistered] = oracle_address;
-    // set the tokens ltv
-    _tokenId_tokenLTV[_tokensRegistered] = LTV;
-    // set the tokens liquidation incentive
-    _tokenAddress_liquidationIncentive[token_address] = liquidationIncentive;
-    // finally, add the token to the array of enabled tokens
-    _enabledTokens.push(token_address);
-    emit RegisteredErc20(token_address, LTV, oracle_address, liquidationIncentive);
+    _enabledTokenLookup[token_address] = true;
+    emit RegisteredErc20(token_address, LTV, oracle_address, liquidationIncentive, isLP);
   }
 
   /// @notice update an existing collateral with new collateral parameters
@@ -311,14 +369,19 @@ contract VaultController is
     // the oracle and token must both exist and be registerd
     require(_oracleMaster._relays(oracle_address) != address(0x0), "oracle does not exist");
     require(_tokenAddress_tokenId[token_address] != 0, "token is not registered");
-    //LTV must be compatible with liquidation incentive
+    // LTV must be compatible with liquidation incentive
     require(LTV < (expScale - liquidationIncentive), "incompatible LTV");
-    // set the oracle of the token
-    _tokenId_oracleAddress[_tokensRegistered] = oracle_address;
-    // set the ltv of the token
-    _tokenId_tokenLTV[_tokensRegistered] = LTV;
-    // set the liquidation incentive of the token
-    _tokenAddress_liquidationIncentive[token_address] = liquidationIncentive;
+    // get token id
+    uint256 tokenID = _tokenAddress_tokenId[token_address];
+    // update token info
+    _tokenId_tokenInfo[tokenID] = TokenInfo(
+      _tokenId_tokenInfo[tokenID].isLP,
+      token_address,
+      oracle_address,
+      _tokenId_tokenInfo[tokenID].wrappedTokenAddress,
+      LTV,
+      liquidationIncentive
+    );
 
     emit UpdateRegisteredErc20(token_address, LTV, oracle_address, liquidationIncentive);
   }
@@ -335,6 +398,54 @@ contract VaultController is
     uint256 usda_liability = truncate((vault.baseLiability() * _interest.factor));
     // if the LTV >= liability, the vault is solvent
     return (total_liquidity_value >= usda_liability);
+  }
+
+  function depositToVault(
+    uint96 id,
+    address asset_address,
+    uint256 amount
+  ) external override paysInterest whenNotPaused {
+    // get vault
+    IVault vault = getVault(id);
+    // get pool info and token info
+    PoolInfo memory pool_info = poolInfo[_tokenAddress_tokenId[asset_address] - 1];
+    TokenInfo memory token_info = _tokenId_tokenInfo[_tokenAddress_tokenId[asset_address]];
+    // deposit token to the wrapped token
+    WrappedToken(token_info.wrappedTokenAddress).deposit(msg.sender, amount);
+    IERC20(token_info.wrappedTokenAddress).safeTransfer(address(vault), amount);
+    // deposit depositToken to reward pool
+    ITokenMinter(pool_info.depositToken).mint(address(this), amount);
+    IERC20(pool_info.depositToken).safeApprove(pool_info.rewardPool, 0);
+    IERC20(pool_info.depositToken).safeApprove(pool_info.rewardPool, amount);
+    IRewards(pool_info.rewardPool).stakeFor(address(vault), amount);
+
+    emit Deposited(id, asset_address, amount);
+  }
+
+  function withdrawFromVault(
+    uint96 id,
+    address asset_address,
+    uint256 amount
+  ) external override paysInterest whenNotPaused {
+    // get vault
+    IVault vault = getVault(id);
+    require(vault.minter() == msg.sender, "!auth");
+    // get pool info and token info
+    PoolInfo memory pool_info = poolInfo[_tokenAddress_tokenId[asset_address] - 1];
+    TokenInfo memory token_info = _tokenId_tokenInfo[_tokenAddress_tokenId[asset_address]];
+    // burn depositToken from reward pool
+    ITokenMinter(pool_info.depositToken).burn(address(this), amount);
+    // withdraw token from the wrapped token
+    WrappedToken(token_info.wrappedTokenAddress).withdraw(address(vault), amount);
+    // stash
+    if (pool_info.stash != address(0)) {
+      IStash(pool_info.stash).stashRewards();
+    }
+    IERC20(asset_address).safeTransfer(msg.sender, amount);
+    //  check if the account is solvent
+    require(checkVault(id), "over-withdrawal");
+
+    emit Withdrawn(id, asset_address, amount);
   }
 
   /// @notice borrow USDa from a vault. only vault minter may borrow from their vault
@@ -502,34 +613,21 @@ contract VaultController is
     //decrease liquidator's USDa balance
     _usda.vaultControllerBurn(_msgSender(), usda_to_repurchase);
 
-    if(_enabledTokenLookup[asset_address] == true){
-      // finally, deliver tokens to liquidator
-      vault.controllerTransfer(asset_address, _treasury, ((tokens_to_liquidate * _feeBasis) /1000));
-      uint256 inverse = 1000 - _feeBasis;
-      vault.controllerTransfer(asset_address, _msgSender(), ((tokens_to_liquidate * inverse) / 1000));
+    // get pool info and token info
+    PoolInfo memory pool_info = poolInfo[_tokenAddress_tokenId[asset_address] - 1];
+    TokenInfo memory token_info = _tokenId_tokenInfo[_tokenAddress_tokenId[asset_address]];
+    // withdraw and burn depositToken from reward pool
+    ITokenMinter(pool_info.depositToken).burn(address(this), tokens_to_liquidate);
+    // withdraw token from the wrapped token
+    WrappedToken(token_info.wrappedTokenAddress).withdraw(address(vault), tokens_to_liquidate);
+    // stash
+    if (pool_info.stash != address(0)) {
+      IStash(pool_info.stash).stashRewards();
     }
+    // transfer to the liquidator
+    IERC20(asset_address).safeTransfer(_msgSender(), ((tokens_to_liquidate * _feeBasis) / 1000));
+    IERC20(asset_address).safeTransfer(_msgSender(), ((tokens_to_liquidate * (1000 - _feeBasis)) / 1000));
 
-    if(_enabledLPTokenLookup[asset_address] == true){
-
-      //remove from booster
-      uint256 PID = IBooster(booster).tokenToPID(asset_address);
-      IBooster(booster).withdraw(PID, tokens_to_liquidate);
-
-      address depositToken = IBooster(booster).pidToDepositToken(PID);
-
-      //get deposit token from user
-      vault.controllerTransfer(depositToken, address(this), tokens_to_liquidate);
-
-      uint256 tokenBalance = vault.readUserVirtualBalance(asset_address);
-      tokenBalance -= tokens_to_liquidate;
-      //remove users virtual balance
-      vault.setUserVirtualBalance(asset_address, tokenBalance);
-
-      // finally, deliver tokens to liquidator but since we withdrew they came to this controller.
-      IERC20(asset_address).transferFrom(address(this), address(_treasury), (tokens_to_liquidate * _feeBasis) /1000);
-      uint256 inverse = 1000 - _feeBasis;
-      IERC20(asset_address).transferFrom(address(this), _msgSender(), ((tokens_to_liquidate * inverse) / 1000));
-    }
     // this might not be needed. Will always be true because it is already implied by _liquidationMath.
     require(get_vault_borrowing_power(vault) <= _vaultLiability(id), "overliquidation");
 
@@ -570,15 +668,18 @@ contract VaultController is
 
     IVault vault = getVault(id);
 
+    // get token info
+    TokenInfo memory tokenInfo = _tokenId_tokenInfo[_tokenAddress_tokenId[asset_address]];
+
     //get price of asset scaled to decimal 18
     uint256 price = _oracleMaster.getLivePrice(asset_address);
 
     // get price discounted by liquidation penalty
     // price * (100% - liquidationIncentive)
-    uint256 badFillPrice = truncate(price * (1e18 - _tokenAddress_liquidationIncentive[asset_address]));
+    uint256 badFillPrice = truncate(price * (1e18 - tokenInfo.liquidationIncentive));
 
     // the ltv discount is the amount of collateral value that one token provides
-    uint256 ltvDiscount = truncate(price * _tokenId_tokenLTV[_tokenAddress_tokenId[asset_address]]);
+    uint256 ltvDiscount = truncate(price * tokenInfo.LTV);
     // this number is the denominator when calculating the max_tokens_to_liquidate
     // it is simply the badFillPrice - ltvDiscount
     uint256 denominator = badFillPrice - ltvDiscount;
@@ -593,8 +694,8 @@ contract VaultController is
     }
 
     //Cannot liquidate more collateral than there is in the vault
-    if (tokens_to_liquidate > vault.tokenBalance(asset_address)) {
-      tokens_to_liquidate = vault.tokenBalance(asset_address);
+    if (tokens_to_liquidate > vault.tokenBalance(tokenInfo.wrappedTokenAddress)) {
+      tokens_to_liquidate = vault.tokenBalance(tokenInfo.wrappedTokenAddress);
     }
 
     return (tokens_to_liquidate, badFillPrice);
@@ -653,26 +754,27 @@ contract VaultController is
     uint192 total_liquidity_value = 0;
     // loop over each registed token, adding the indivuduals LTV to the total LTV of the vault
     for (uint192 i = 1; i <= _tokensRegistered; i++) {
+      // get token info
+      TokenInfo memory tokenInfo = _tokenId_tokenInfo[i];
       // if the ltv is 0, continue
-      if (_tokenId_tokenLTV[i] == 0) {
+      if (tokenInfo.LTV == 0) {
         continue;
       }
       // get the address of the token through the array of enabled tokens
       // note that index 0 of this vaultId 1, so we must subtract 1
 
-      address token_address = _tokenId_tokenAddress[i - 1];
       // the balance is the vaults token balance of the current collateral token in the loop
-      uint256 balance = vault.tokenBalance(token_address);
+      uint256 balance = vault.tokenBalance(tokenInfo.wrappedTokenAddress);
       if (balance == 0) {
         continue;
       }
       // the raw price is simply the oraclemaster price of the token
-      uint192 raw_price = safeu192(_oracleMaster.getLivePrice(token_address));
+      uint192 raw_price = safeu192(_oracleMaster.getLivePrice(tokenInfo.tokenAddress));
       if (raw_price == 0) {
         continue;
       }
       // the token value is equal to the price * balance * tokenLTV
-      uint192 token_value = safeu192(truncate(truncate(raw_price * balance * _tokenId_tokenLTV[i])));
+      uint192 token_value = safeu192(truncate(truncate(raw_price * balance * tokenInfo.LTV)));
       // increase the LTV of the vault by the token value
       total_liquidity_value = total_liquidity_value + token_value;
     }
@@ -751,22 +853,17 @@ contract VaultController is
     for (uint96 i = start; i <= stop; i++) {
       IVault vault = getVault(i);
       uint256[] memory tokenBalances = new uint256[](_enabledTokens.length);
-      uint256[] memory lpTokenBalances = new uint256[](_enabledLPTokens.length);
 
-      for (uint256 j = 0; j < _enabledTokens.length; j++) {
-        tokenBalances[j] = vault.tokenBalance(_enabledTokens[j]);
-      }
-      for (uint256 k = 0; k < _enabledLPTokens.length; k++){
-        lpTokenBalances[k] = vault.tokenBalance(_enabledLPTokens[k]);
+      for (uint256 j = 1; j <= _enabledTokens.length; j++) {
+        TokenInfo memory tokenInfo = _tokenId_tokenInfo[j];
+        tokenBalances[j] = vault.tokenBalance(tokenInfo.wrappedTokenAddress);
       }
       summaries[i - start] = VaultSummary(
         i,
         this.vaultBorrowingPower(i),
         this.vaultLiability(i),
         _enabledTokens,
-        _enabledLPTokens,
-        tokenBalances,
-        lpTokenBalances
+        tokenBalances
       );
     }
     return summaries;
@@ -784,15 +881,20 @@ contract VaultController is
     return _treasury;
   }
 
-  function enabledLPTokensLookup(address _address) external view returns (bool) {
-    return _enabledLPTokenLookup[_address];
+  function isEnabledLPToken(address _address) external view returns (bool) {
+    TokenInfo memory tokenInfo = _tokenId_tokenInfo[_tokenAddress_tokenId[_address]];
+    return tokenInfo.isLP;
   }
 
-  function enabledTokensLookup(address _address) external view returns (bool) {
-    return _enabledTokenLookup[_address];
-  }
+  //callback from reward contract when crv is received.
+  function rewardClaimed(uint256 _pid, address _tokenEarned, address _address, uint256 _amount) external returns(bool){
+    address rewardContract = poolInfo[_pid].rewardPool;
+    require(msg.sender == poolInfo[_pid].stash || msg.sender == lockRewards, "!auth");
+    address _from = msg.sender;
+    address _stash = poolInfo[_pid].stash;
+    //mint reward tokens
+    ITokenMinter(masterMinter).mintRewards(_address, _from, _tokenEarned, _amount, _stash);
 
-  function LPDepositTokens(address _address) external view returns (address) {
-    return _LPDepositTokens[_address];
+    return true;
   }
 }

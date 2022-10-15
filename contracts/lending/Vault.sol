@@ -10,13 +10,6 @@ import "../_external/IERC20.sol";
 import "../_external/Context.sol";
 import "../_external/openzeppelin/SafeERC20Upgradeable.sol";
 
-interface IBooster {
-  function tokenToPID(address) external view returns(uint256);
-  function deposit(uint256, uint256, bool) external;
-  function withdraw(uint256, uint256) external;
-  function pidToDepositToken(uint256) external view returns(address);
-}
-
 /// @title Vault
 /// @notice our implentation of maker-vault like vault
 /// major differences:
@@ -38,8 +31,6 @@ contract Vault is IVault, Context {
   VaultInfo public _vaultInfo;
   IVaultController public immutable _controller;
 
-  mapping(address => uint256) userVirtualBalance;
-
   /// @notice this is the unscaled liability of the vault.
   /// the number is meaningless on its own, and must be combined with the factor taken from
   /// the vaultController in order to find the true liabilitiy
@@ -49,14 +40,6 @@ contract Vault is IVault, Context {
   modifier onlyVaultController() {
     require(_msgSender() == address(_controller), "sender not VaultController");
     _;
-  }
-
-  function readUserVirtualBalance(address _asset) external view returns (uint256) {
-    return userVirtualBalance[_asset];
-  }
-
-  function setUserVirtualBalance(address _asset, uint256 _balance) external onlyVaultController {
-    userVirtualBalance[_asset] = _balance;
   }
 
   /// @notice checks if _msgSender is the minter of the vault
@@ -100,57 +83,7 @@ contract Vault is IVault, Context {
   /// @param addr address of the erc20 token
   /// @dev scales wBTC up to normal erc20 size
   function tokenBalance(address addr) external view returns (uint256) {
-    address Booster = IVaultController(_controller).booster();
-    if(IVaultController(_controller).enabledLPTokensLookup(addr) == true){
-      return userVirtualBalance[addr];
-    } else {
-      return IERC20(addr).balanceOf(address(this));
-    }
-  }
-
-  /// @notice deposits tokens - only needed for LP tokens but can be used for any.
-  /// @param addr - address of the erc20
-  /// @param amount - amount of the erc20
-  function depositErc20(address addr, uint256 amount) external {
-    address Booster = IVaultController(_controller).booster();
-    if(IVaultController(_controller).enabledTokensLookup(addr) == true){
-      SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(addr), _msgSender(), address(this), amount);
-    }
-
-    if(IVaultController(_controller).enabledLPTokensLookup(addr) == true){
-      address depositToken = IVaultController(_controller).LPDepositTokens(addr);
-      SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(addr), _msgSender(), address(this), amount);
-      uint256 PID = IBooster(Booster).tokenToPID(addr);
-      IBooster(Booster).deposit(PID, amount, true);
-      userVirtualBalance[addr] += amount;
-    }
-  }
-
-  /// Add a stash/gague pass through claim function
-
-  /// @notice withdraw an erc20 token from the vault
-  /// this can only be called by the minter
-  /// the withdraw will be denied if ones vault would become insolvent
-  /// @param token_address address of erc20 token
-  /// @param amount amount of erc20 token to withdraw
-  function withdrawErc20(address token_address, uint256 amount) external override onlyMinter {
-    address Booster = IVaultController(_controller).booster();
-    if(IVaultController(_controller).enabledTokensLookup(token_address) == true){
-      // transfer the token to the owner
-      SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token_address), _msgSender(), amount);
-      //  check if the account is solvent
-      require(_controller.checkVault(_vaultInfo.id), "over-withdrawal");
-      emit Withdraw(token_address, amount);
-    }
-
-    if(IVaultController(_controller).enabledLPTokensLookup(token_address) == true){
-      require(userVirtualBalance[token_address] >= amount, "You don't have that balance");
-      uint256 PID = IBooster(Booster).tokenToPID(token_address);
-      userVirtualBalance[token_address] -= amount;
-      IBooster(Booster).withdraw(PID, amount);
-      require(_controller.checkVault(_vaultInfo.id), "over-withdrawal");
-      emit Withdraw(token_address, amount);
-    }
+    return IERC20(addr).balanceOf(address(this));
   }
 
   /// @notice delegate the voting power of a comp-like erc20 token to another address
