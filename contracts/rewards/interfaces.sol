@@ -27,6 +27,9 @@ interface ICurveVoteEscrow {
     function withdraw() external;
     function smart_wallet_checker() external view returns (address);
     function depositFor(address, uint256) external;
+    function balanceOf(address addr, uint256 _t) external view returns (uint256);
+    function balanceOf(address addr) external view returns (uint256);
+    function locked(address addr) external view returns (uint256);
 }
 
 interface IWalletChecker {
@@ -70,6 +73,58 @@ interface IStaker{
     function balanceOfPool(address) external view returns (uint256);
     function operator() external view returns (address);
     function execute(address _to, uint256 _value, bytes calldata _data) external returns (bool, bytes memory);
+}
+
+interface ILockedCvx{
+     struct LockedBalance {
+        uint112 amount;
+        uint112 boosted;
+        uint32 unlockTime;
+    }
+
+    function lock(address _account, uint256 _amount, uint256 _spendRatio) external;
+    function notifyRewardAmount(address _rewardsToken, uint256 _reward) external;
+    function processExpiredLocks(bool _relock) external;
+    function getReward(address _account, bool _stake) external;
+    function balanceAtEpochOf(uint256 _epoch, address _user) view external returns(uint256 amount);
+    function totalSupplyAtEpoch(uint256 _epoch) view external returns(uint256 supply);
+    function epochCount() external view returns(uint256);
+    function epochs(uint256 _id) external view returns(uint224,uint32);
+    function checkpointEpoch() external;
+    function balanceOf(address _account) external view returns(uint256);
+    function lockedBalanceOf(address _user) external view returns(uint256 amount);
+    function pendingLockOf(address _user) external view returns(uint256 amount);
+    function pendingLockAtEpochOf(uint256 _epoch, address _user) view external returns(uint256 amount);
+    function totalSupply() view external returns(uint256 supply);
+    function lockedBalances(
+        address _user
+    ) view external returns(
+        uint256 total,
+        uint256 unlockable,
+        uint256 locked,
+        LockedBalance[] memory lockData
+    );
+    function addReward(
+        address _rewardsToken,
+        address _distributor,
+        bool _useBoost
+    ) external;
+    function approveRewardDistributor(
+        address _rewardsToken,
+        address _distributor,
+        bool _approved
+    ) external;
+    function setStakeLimits(uint256 _minimum, uint256 _maximum) external;
+    function setBoost(uint256 _max, uint256 _rate, address _receivingAddress) external;
+    function setKickIncentive(uint256 _rate, uint256 _delay) external;
+    function shutdown() external;
+    function recoverERC20(address _tokenAddress, uint256 _tokenAmount) external;
+}
+
+interface IDelegation{
+    function clearDelegate(bytes32 _id) external;
+    function setDelegate(bytes32 _id, address _delegate) external;
+    function delegation(address _address, bytes32 _id) external view returns(address);
 }
 
 interface IRewards{
@@ -125,6 +180,8 @@ interface ICrvDepositor {
 interface IFeeDistro{
     function claim() external;
     function token() external view returns(address);
+    function admin() external view returns(address);
+    function checkpoint_token() external;
 }
 
 interface ITokenMinter{
