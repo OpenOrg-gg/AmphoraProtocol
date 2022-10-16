@@ -142,7 +142,6 @@ interface IVaultController is VaultControllerEvents {
     address oracle_address,
     uint256 liquidationIncentive,
     address gauge,
-    uint32 subPID,
     bool isLP
   ) external;
 

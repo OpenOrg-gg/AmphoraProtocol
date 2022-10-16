@@ -309,7 +309,6 @@ contract VaultController is
     address oracle_address,
     uint256 liquidationIncentive,
     address gauge,
-    uint32 subPID,
     bool isLP
   ) external override onlyOwner {
     // the oracle must be registered & the token must be unregistered
@@ -325,7 +324,7 @@ contract VaultController is
     _tokenAddress_tokenId[token_address] = _tokensRegistered;
     // create new wrapped token
     address wrapped_token_address = address(
-      new WrappedToken(address(this), token_address, gauge, subPID, isLP)
+      new WrappedToken(address(this), token_address, gauge, isLP)
     );
     _wrappedTokenAddress_tokenAddress[wrapped_token_address] = token_address;
     // create new pool

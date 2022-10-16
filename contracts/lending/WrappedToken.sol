@@ -9,14 +9,6 @@ import "../_external/extensions/SafeERC20.sol";
 import "../_external/extensions/Address.sol";
 import "../_external/extensions/ERC20.sol";
 
-
-interface IConvex{
-    function deposit(uint256, uint256, bool) external;
-    function claimRewards(uint256 _pid, address _gauge) external;
-    function withdraw(uint256 _pid, uint256 _amount) external;
-    function poolInfo(uint256) external returns (address, address, address, address, address, bool);
-}
-
 // @notice This contract helps vaults store and stake their deposited tokens.
 // Every enabled tokens in vault controller has a corresponding WrappedToken, when users deposit into their vaults,
 // vault controller will deposit their supplied tokens into this contract, and mint wrapped tokens to their vaults.
@@ -30,14 +22,12 @@ contract WrappedToken is ERC20 {
     address public operator; // vault controller
     address public underlying;
     address public gauge;
-    uint32 public subPID;
     bool public isLP;
 
     constructor(
         address _operator,
         address _underlying,
         address _gaugeAddress, // for LP token
-        uint32 _subPID, // for LP token
         bool _isLP
     )
         ERC20(
@@ -53,7 +43,6 @@ contract WrappedToken is ERC20 {
         operator =  _operator;
         underlying = _underlying;
         gauge = _gaugeAddress;
-        subPID = _subPID;
         isLP = _isLP;
     }
 

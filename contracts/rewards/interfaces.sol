@@ -351,10 +351,12 @@ interface IVaultController is VaultControllerEvents {
   function changeProtocolFee(uint192 new_protocol_fee) external;
 
   function registerErc20(
-    address token_address,
-    uint256 LTV,
-    address oracle_address,
-    uint256 liquidationIncentive
+      address token_address,
+      uint256 LTV,
+      address oracle_address,
+      uint256 liquidationIncentive,
+      address gauge,
+      bool isLP
   ) external;
 
   function registerUSDl(address usdl_address) external;
