@@ -29,14 +29,14 @@ contract WrappedToken is ERC20 {
 
     address public operator; // vault controller
     address public underlying;
-    address public convexAddress;
+    address public gauge;
     uint32 public subPID;
     bool public isLP;
 
     constructor(
         address _operator,
         address _underlying,
-        address _convexAddress, // for LP token
+        address _gaugeAddress, // for LP token
         uint32 _subPID, // for LP token
         bool _isLP
     )
@@ -47,23 +47,27 @@ contract WrappedToken is ERC20 {
             string(abi.encodePacked("ampw", ERC20(underlying).symbol()))
         )
     {
+        // check reward pool params
+        require(_gaugeAddress != address(0), "!param");
+
         operator =  _operator;
         underlying = _underlying;
-        convexAddress = _convexAddress;
+        gauge = _gaugeAddress;
         subPID = _subPID;
         isLP = _isLP;
     }
 
     function deposit(address _from, uint256 _amount) public {
         require(msg.sender == operator, "!auth");
+        // transfer funds
         IERC20(underlying).safeTransferFrom(_from, address(this), _amount);
         if (isLP) {
             // deposit token into Convex
             uint256 balance = IERC20(underlying).balanceOf(address(this));
             if (balance > 0) {
-                IERC20(underlying).safeApprove(convexAddress, 0);
-                IERC20(underlying).safeApprove(convexAddress, balance);
-                IConvex(convexAddress).deposit(subPID, balance, true);
+                IERC20(underlying).safeApprove(gauge, 0);
+                IERC20(underlying).safeApprove(gauge, balance);
+                ICurveGauge(gauge).deposit(balance);
             }
         }
         _mint(msg.sender, _amount);
@@ -76,7 +80,7 @@ contract WrappedToken is ERC20 {
         _burn(_from, _amount);
         if (isLP) {
             // withdraw tokens from Convex
-            IConvex(convexAddress).withdraw(subPID, _amount);
+            ICurveGauge(gauge).withdraw(_amount);
         }
         // transfer withdrawn tokens to msg sender (i.e. the operator)
         IERC20(underlying).safeTransfer(msg.sender, _amount);
@@ -86,24 +90,24 @@ contract WrappedToken is ERC20 {
     }
 
     // This function is taken from ConvexStaker.sol
-    function checkRewards(address _gauge) public view returns(uint256) {
-        uint256 _mainAmount = IConvexRewards(_gauge).earned(address(this));
+    function checkRewards() public view returns(uint256) {
+        uint256 _mainAmount = IConvexRewards(gauge).earned(address(this));
         return _mainAmount;
     }
 
     // This function is taken from ConvexStaker.sol
-    function claimRewards(address _gauge, address _stash) public {
+    function claimRewards(address _stash) public {
         if (!isLP) {
             return;
         }
         require(msg.sender == operator, "!auth");
-        uint256 rewardsLength = IConvexRewards(_gauge).extraRewardsLength();
+        uint256 rewardsLength = IConvexRewards(gauge).extraRewardsLength();
         address[] memory rewardPools = new address[](rewardsLength);
-        rewardPools[0] = address(_gauge);
+        rewardPools[0] = address(gauge);
         if(rewardsLength != 0){
             uint256 max = rewardsLength;
             for(uint i=0; i<=max; i++){
-                address _virtualPool = IConvexRewards(_gauge).extraRewards(i);
+                address _virtualPool = IConvexRewards(gauge).extraRewards(i);
                 rewardPools[i+1] = _virtualPool;
             }
         }
