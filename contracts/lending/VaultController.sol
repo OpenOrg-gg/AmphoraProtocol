@@ -309,14 +309,13 @@ contract VaultController is
     address oracle_address,
     uint256 liquidationIncentive,
     address gauge,
-    uint32 subPID,
     bool isLP
   ) external override onlyOwner {
     // the oracle must be registered & the token must be unregistered
     require(_oracleMaster._relays(oracle_address) != address(0x0), "oracle does not exist");
     require(_tokenAddress_tokenId[token_address] == 0, "token already registered");
-    // check reward pool params
-    require(gauge != address(0) && token_address != address(0),"!param");
+    // check token address
+    require(token_address != address(0),"!param");
     //LTV must be compatible with liquidation incentive
     require(LTV < (expScale - liquidationIncentive), "incompatible LTV");
     // increment the amount of registered token
@@ -325,7 +324,7 @@ contract VaultController is
     _tokenAddress_tokenId[token_address] = _tokensRegistered;
     // create new wrapped token
     address wrapped_token_address = address(
-      new WrappedToken(address(this), token_address, _convex, subPID, isLP)
+      new WrappedToken(address(this), token_address, gauge, isLP)
     );
     _wrappedTokenAddress_tokenAddress[wrapped_token_address] = token_address;
     // create new pool
