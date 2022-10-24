@@ -12,6 +12,31 @@ import "../_external/IERC20.sol";
 import "../_external/Context.sol";
 import "../_external/openzeppelin/SafeERC20Upgradeable.sol";
 
+/// @title VaultInfo struct
+/// @notice this struct is used to store the vault metadata
+/// this should reduce the cost of minting by ~15,000
+/// by limiting us to max 2**96-1 vaults
+struct VaultInfo {
+  uint96 id;
+  address minter;
+}
+
+struct PoolInfo {
+  address depositToken;
+  address gauge;
+  address stash;
+  address rewardPool;
+}
+
+struct TokenInfo {
+  bool isLP;
+  address tokenAddress;
+  address oracleAddress;
+  address wrappedTokenAddress;
+  uint256 LTV;
+  uint256 liquidationIncentive;
+}
+
 /// @title Vault
 /// @notice our implentation of maker-vault like vault
 /// major differences:
@@ -20,31 +45,6 @@ import "../_external/openzeppelin/SafeERC20Upgradeable.sol";
 /// 3. can delegate voting power of contained tokens
 contract Vault is IVault, Context {
   using SafeERC20Upgradeable for IERC20;
-
-  /// @title VaultInfo struct
-  /// @notice this struct is used to store the vault metadata
-  /// this should reduce the cost of minting by ~15,000
-  /// by limiting us to max 2**96-1 vaults
-  struct VaultInfo {
-    uint96 id;
-    address minter;
-  }
-
-  struct PoolInfo {
-    address depositToken;
-    address gauge;
-    address stash;
-    address rewardPool;
-  }
-
-  struct TokenInfo {
-    bool isLP;
-    address tokenAddress;
-    address oracleAddress;
-    address wrappedTokenAddress;
-    uint256 LTV;
-    uint256 liquidationIncentive;
-  }
 
   /// @notice Metadata of vault, aka the id & the minter's address
   VaultInfo public _vaultInfo;
@@ -140,40 +140,34 @@ contract Vault is IVault, Context {
     return _baseLiability;
   }
 
- function depositToVault(
-    address asset_address,
-    uint256 amount
-  ) external override {
+  function depositToVault(address asset_address, uint256 amount) external override {
     address controllerRewards = _controller.vaultControllerRewards();
     IVaultControllerRewards vaultControllerRewards = IVaultControllerRewards(controllerRewards);
     IVaultController(_controller).pay_interest();
     // get pool info and token info
     uint256 _id = _controller._tokenAddress_tokenId(asset_address);
-    (address depositToken,,, address rewardPool) = vaultControllerRewards.poolInfo(_id - 1);
+    (address depositToken, , , address rewardPool) = vaultControllerRewards.poolInfo(_id - 1);
     IVaultController.TokenInfo memory token_info = _controller.tokenId_tokenInfo(_id);
     // deposit token to the wrapped token
     WrappedToken(token_info.wrappedTokenAddress).deposit(msg.sender, amount);
-    SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token_info.wrappedTokenAddress),address(this), amount);
+    SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token_info.wrappedTokenAddress), address(this), amount);
     // deposit depositToken to reward pool
     ITokenMinter(depositToken).mint(address(this), amount);
-    SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(depositToken),rewardPool, 0);
-    SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(depositToken),rewardPool, amount);
+    SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(depositToken), rewardPool, 0);
+    SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(depositToken), rewardPool, amount);
     IRewards(rewardPool).stakeFor(address(this), amount);
 
     //emit Deposited(asset_address, amount);
   }
 
-  function withdrawFromVault(
-    address asset_address,
-    uint256 amount
-  ) external override {
+  function withdrawFromVault(address asset_address, uint256 amount) external override {
     address controllerRewards = _controller.vaultControllerRewards();
     IVaultControllerRewards vaultControllerRewards = IVaultControllerRewards(controllerRewards);
     IVaultController(_controller).pay_interest();
     // get pool info and token info
     uint256 _id = _controller._tokenAddress_tokenId(asset_address);
     IVaultController.TokenInfo memory token_info = _controller.tokenId_tokenInfo(_id);
-    (address depositToken,, address stash,) = vaultControllerRewards.poolInfo(_id - 1);
+    (address depositToken, , address stash, ) = vaultControllerRewards.poolInfo(_id - 1);
     // burn depositToken from reward pool
     ITokenMinter(depositToken).burn(address(this), amount);
     // withdraw token from the wrapped token
@@ -182,7 +176,7 @@ contract Vault is IVault, Context {
     if (stash != address(0)) {
       IStash(stash).stashRewards();
     }
-    SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(asset_address),msg.sender, amount);
+    SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(asset_address), msg.sender, amount);
     //  check if the account is solvent
     require(IVaultController(_controller).checkVault(_vaultInfo.id), "3");
 
