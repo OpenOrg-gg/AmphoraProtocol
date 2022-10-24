@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.13;
 import {IERC20} from "./_external/IERC20.sol";
 
 interface IWUSDA is IERC20 {

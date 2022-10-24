@@ -4,7 +4,7 @@ import { showBody, showBodyCyan } from "../../../util/format";
 import { BN } from "../../../util/number";
 import { advanceBlockHeight, nextBlockTime, fastForward, mineBlock, OneWeek, OneYear } from "../../../util/block";
 import { utils, BigNumber } from "ethers";
-import { calculateAccountLiability, payInterestMath, calculateBalance, getGas, getArgs, truncate, getEvent, calculatetokensToLiquidate, calculateUSDI2repurchase, changeInBalance } from "../../../util/math";
+import { calculateAccountLiability, payInterestMath, calculateBalance, getGas, getArgs, truncate, getEvent, calculatetokensToLiquidate, calculateUSDA2repurchase, changeInBalance } from "../../../util/math";
 import { currentBlock, reset } from "../../../util/block"
 import MerkleTree from "merkletreejs";
 import { keccak256, solidityKeccak256 } from "ethers/lib/utils";
@@ -17,15 +17,15 @@ import { red } from "bn.js";
 import { DeployContract, DeployContractWithProxy } from "../../../util/deploy";
 require("chai").should();
 describe("Check Interest Protocol contracts", () => {
-  describe("Sanity check USDi deploy", () => {
+  describe("Sanity check USDa deploy", () => {
     it("Should return the right name, symbol, and decimals", async () => {
 
-      expect(await s.USDI.name()).to.equal("USDI Token");
-      expect(await s.USDI.symbol()).to.equal("USDI");
-      expect(await s.USDI.decimals()).to.equal(18);
-      //expect(await s.USDI.owner()).to.equal(s.Frank.address);
-      //s.owner = await s.USDI.owner()
-      s.pauser = await s.USDI.pauser()
+      expect(await s.USDA.name()).to.equal("USDA Token");
+      expect(await s.USDA.symbol()).to.equal("USDA");
+      expect(await s.USDA.decimals()).to.equal(18);
+      //expect(await s.USDA.owner()).to.equal(s.Frank.address);
+      //s.owner = await s.USDA.owner()
+      s.pauser = await s.USDA.pauser()
     });
   });
 

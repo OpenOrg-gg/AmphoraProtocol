@@ -1,12 +1,12 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
-import { InterestProtocolTokenDelegate, USDI, IERC20, IVOTE, UniswapV2OracleRelay, VotingVault, CappedToken, CappedSTETH, CappedRebaseToken, CappedFeeOnTransferToken, AnchoredViewRelay, ChainlinkOracleRelay, IOracleRelay, ILidoOracle, ThreeLines0_100, IVault, IOracleMaster, IVaultController, ProxyAdmin, IUSDI, ICurveMaster, ILido, CappedGovToken, VotingVaultController } from "../../typechain-types";
+import { InterestProtocolTokenDelegate, USDA, IERC20, IVOTE, UniswapV2OracleRelay, VotingVault, CappedToken, CappedSTETH, CappedRebaseToken, CappedFeeOnTransferToken, AnchoredViewRelay, ChainlinkOracleRelay, IOracleRelay, ILidoOracle, ThreeLines0_100, IVault, IOracleMaster, IVaultController, ProxyAdmin, IUSDA, ICurveMaster, ILido, CappedGovToken, VotingVaultController } from "../../typechain-types";
 import { Addresser, MainnetAddresses } from "../../util/addresser";
 import { BN } from "../../util/number";
 
 export class TestScope extends MainnetAddresses {
-    USDI!: USDI;
+    USDA!: USDA;
     USDC!: IERC20;
     COMP!: IVOTE;
     WETH!: IERC20;
@@ -54,10 +54,10 @@ export class TestScope extends MainnetAddresses {
     Curve!: ICurveMaster;
     ThreeLines!: ThreeLines0_100;
 
-    Frank!: SignerWithAddress  // frank is the Frank and master of USDI, and symbolizes the power of governance
-    Andy!: SignerWithAddress   // andy is a usdc holder. He wishes to deposit his USDC to hold USDI
-    Bob!: SignerWithAddress    // bob is an eth holder. He wishes to deposit his eth and borrow USDI
-    Carol!: SignerWithAddress  // carol is a uni holder. She wishes to deposit uni and borrow USDI, and still be able to vote
+    Frank!: SignerWithAddress  // frank is the Frank and master of USDA, and symbolizes the power of governance
+    Andy!: SignerWithAddress   // andy is a usdc holder. He wishes to deposit his USDC to hold USDA
+    Bob!: SignerWithAddress    // bob is an eth holder. He wishes to deposit his eth and borrow USDA
+    Carol!: SignerWithAddress  // carol is a uni holder. She wishes to deposit uni and borrow USDA, and still be able to vote
     Dave!: SignerWithAddress   // dave is a liquidator. he enjoys liquidating, so he's going to try to liquidate Bob
     Eric!: SignerWithAddress   // eric only holds ETH and generally does not use IP unless a clean slate is needed
     Gus!: SignerWithAddress    // gus is the control, we can compare balances of those who wrapped to his to ensure all rebases are correct

@@ -16,7 +16,7 @@ import {
   IOracleRelay,
   ThreeLines0_100,
   ICurveMaster,
-  USDI,
+  USDA,
   IVOTE 
 } from "../../typechain-types";
 import { Addresser, MainnetAddresses } from "../../util/addresser";
@@ -24,7 +24,7 @@ import { BN } from "../../util/number";
 
 export class TestScope extends MainnetAddresses {
   USDC!: IERC20;
-  USDI!: USDI;
+  USDA!: USDA;
 
   usdc_minter = "0xe78388b4ce79068e89bf8aa7f218ef6b9ab0e9d0";
 

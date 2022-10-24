@@ -23,8 +23,8 @@ import {
     ThreeLines0_100,
     ThreeLines0_100__factory,
     UniswapV3OracleRelay__factory,
-    USDI,
-    USDI__factory,
+    USDA,
+    USDA__factory,
     Vault,
     VaultController,
     VaultController__factory,
@@ -50,19 +50,19 @@ describe("Sanity check", () => {
         const tokensRegistered = await s.VaultController.tokensRegistered()
         expect(tokensRegistered).to.eq(BN("3"))//weth, UNI, wBTC
 
-        //no new USDi has been minted
-        const totalSupply = await s.USDI.totalSupply()
+        //no new USDa has been minted
+        const totalSupply = await s.USDA.totalSupply()
         expect(totalSupply).to.eq(BN("1e18"))
 
-        const scaledTotalSupply = await s.USDI.scaledTotalSupply()
+        const scaledTotalSupply = await s.USDA.scaledTotalSupply()
         expect(scaledTotalSupply).to.eq(totalSupply.mul(BN("1e48")))
 
-        const reserveRatio = await s.USDI.reserveRatio()
+        const reserveRatio = await s.USDA.reserveRatio()
         expect(reserveRatio).to.eq(0)
     })
 
     it("Confirm deployer owns all ownable IP contracts", async () => {
-        let owner = await s.USDI.owner()
+        let owner = await s.USDA.owner()
         expect(owner).to.eq(s.Frank.address)
 
         //ownership not on the interface or typechain type, need to get the raw contract
@@ -88,7 +88,7 @@ describe("Sanity check", () => {
     })
     it("Confirm pauser is the deployer", async () => {
 
-        const pauser = await s.USDI.pauser()
+        const pauser = await s.USDA.pauser()
         expect(pauser).to.eq(s.Frank.address)
 
     })

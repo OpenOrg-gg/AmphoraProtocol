@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.13;
+
+import "./ITokenInfo.sol";
 
 // @title VaultController Events
 /// @notice interface which contains any events which the VaultController contract emits
@@ -25,11 +27,9 @@ interface VaultControllerEvents {
 
 /// @title VaultController Interface
 /// @notice extends VaultControllerEvents
-interface IVaultController is VaultControllerEvents {
+interface IVaultController is VaultControllerEvents, ITokenInfo {
   // initializer
-  function initialize(address convex, address tokenFactory, address rewardFactory, address stashFactory) external;
-
-  // view functions
+  function initialize(address convex, address vaultControllerRewards) external;
 
   function FEE_DENOMINATOR() external view returns (uint256);
 
@@ -71,27 +71,15 @@ interface IVaultController is VaultControllerEvents {
     uint256[] tokenBalances;
   }
 
-  function vaultSummaries(uint96 start, uint96 stop) external view returns (VaultSummary[] memory);
+  function pay_interest() external returns (uint256);
 
-  function poolInfo(uint256) external view returns(address,address,address,address);
+  function vaultSummaries(uint96 start, uint96 stop) external view returns (VaultSummary[] memory);
 
   // interest calculations
   function calculateInterest() external returns (uint256);
 
   // vault management business
   function mintVault() external returns (address);
-
-  function depositToVault(
-    uint96 id,
-    address asset_address,
-    uint256 amount
-  ) external;
-
-  function withdrawFromVault(
-    uint96 id,
-    address asset_address,
-    uint256 amount
-  ) external;
 
   function liquidateVault(
     uint96 id,
@@ -117,11 +105,7 @@ interface IVaultController is VaultControllerEvents {
 
   function repayAllUSDa(uint96 id) external;
 
-  function rewardClaimed(uint256 _pid, address _tokenEarned, address _address, uint256 _amount) external returns (bool);
-
   // admin
-  function setRewardContracts(address _rewards, address _stakerRewards) external;
-
   function pause() external;
 
   function unpause() external;
@@ -153,4 +137,8 @@ interface IVaultController is VaultControllerEvents {
     address oracle_address,
     uint256 liquidationIncentive
   ) external;
+  
+  function _tokenAddress_tokenId(address) external returns (uint256);
+  function tokenId_tokenInfo(uint256) external view returns (TokenInfo memory);
+  function vaultControllerRewards() external view returns (address);
 }

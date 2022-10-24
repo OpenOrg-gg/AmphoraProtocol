@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (security/Pausable.sol)
 
-pragma solidity 0.8.9;
+pragma solidity 0.8.13;
 
 import "./ContextUpgradeable.sol";
 import "./Initializable.sol";

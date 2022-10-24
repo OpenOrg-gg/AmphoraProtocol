@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
-import { USDI, IERC20, IVOTE, VaultController, OracleMaster, AnchoredViewRelay, ChainlinkOracleRelay, IOracleRelay, CurveMaster, ThreeLines0_100, IVault, IOracleMaster, IVaultController, ProxyAdmin, IUSDI, ICurveMaster } from "../../typechain-types";
+import { USDA, IERC20, IVOTE, VaultController, OracleMaster, AnchoredViewRelay, ChainlinkOracleRelay, IOracleRelay, CurveMaster, ThreeLines0_100, IVault, IOracleMaster, IVaultController, ProxyAdmin, IUSDA, ICurveMaster } from "../../typechain-types";
 import { Addresser, MainnetAddresses } from "../../util/addresser";
 import { BN } from "../../util/number";
 
@@ -22,7 +22,7 @@ export class deployInfo extends MainnetAddresses {
     // start new contracts
     ProxyAdmin = "0x3D9d8c08dC16Aa104b5B24aBDd1aD857e2c0D8C5"
     VaultController = "0x4aaE9823Fb4C70490F1d802fC697F3ffF8D5CbE3"
-    USDI = "0x2A54bA2964C8Cd459Dc568853F79813a60761B58"
+    USDA = "0x2A54bA2964C8Cd459Dc568853F79813a60761B58"
     Curve = "0x0029abd74B7B32e6a82Bf9f62CB9Dd4Bf8e39aAf"
     ThreeLines = "0x8Ef82C4C48FaaD513D157a86433cd7D9397eA278"
     Oracle = "0xf4818813045E954f5Dc55a40c9B60Def0ba3D477"

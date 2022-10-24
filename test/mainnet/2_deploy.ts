@@ -281,7 +281,9 @@ describe("Deploy Contracts", () => {
         s.wethAddress,
         s.wETH_LTV,
         s.wethAddress,
-        s.LiquidationIncentive
+        s.LiquidationIncentive,
+        "0x0",
+        false
       )
     ).to.not.reverted;
     //showBody("register Uni")
@@ -290,7 +292,9 @@ describe("Deploy Contracts", () => {
         s.uniAddress,
         s.UNI_LTV,
         s.uniAddress,
-        s.LiquidationIncentive
+        s.LiquidationIncentive,
+        "0x0",
+        false
       )
     ).to.not.reverted;
     //showBody("register WBTC")
@@ -299,7 +303,9 @@ describe("Deploy Contracts", () => {
         s.wbtcAddress,
         s.wBTC_LTV,
         s.wbtcAddress,
-        s.LiquidationIncentive
+        s.LiquidationIncentive,
+        "0x0",
+        false
       )
     ).to.not.reverted;
   });

@@ -4,7 +4,7 @@ import { showBody, showBodyCyan } from "../../../util/format";
 import { BN } from "../../../util/number";
 import { advanceBlockHeight, nextBlockTime, fastForward, mineBlock, OneWeek, OneYear, OneDay } from "../../../util/block";
 import { utils, BigNumber } from "ethers";
-import { calculateAccountLiability, payInterestMath, calculateBalance, getGas, getArgs, truncate, getEvent, calculatetokensToLiquidate, calculateUSDI2repurchase, changeInBalance } from "../../../util/math";
+import { calculateAccountLiability, payInterestMath, calculateBalance, getGas, getArgs, truncate, getEvent, calculatetokensToLiquidate, calculateUSDA2repurchase, changeInBalance } from "../../../util/math";
 import { currentBlock, reset } from "../../../util/block"
 import MerkleTree from "merkletreejs";
 import { keccak256, solidityKeccak256 } from "ethers/lib/utils";
@@ -53,8 +53,8 @@ describe("Check starting values", () => {
 describe("Lending with capped MATIC", () => {
     it("Borrow a small amount against capped token", async () => {
 
-        const startUSDI = await s.USDI.balanceOf(s.Bob.address)
-        expect(startUSDI).to.eq(0, "Bob holds 0 USDi")
+        const startUSDA = await s.USDA.balanceOf(s.Bob.address)
+        expect(startUSDA).to.eq(0, "Bob holds 0 USDa")
 
         await s.VaultController.connect(s.Bob).borrowUsdi(s.BobVaultID, borrowAmount)
         await mineBlock()
@@ -62,8 +62,8 @@ describe("Lending with capped MATIC", () => {
         await s.VaultController.connect(s.Bob).borrowUsdi(s.BobVaultID, borrowAmount)
         await mineBlock()
 
-        let balance = await s.USDI.balanceOf(s.Bob.address)
-        expect(await toNumber(balance)).to.be.closeTo(await toNumber(startUSDI.add(borrowAmount.mul(2))), 0.001, "Bob received USDi loan")
+        let balance = await s.USDA.balanceOf(s.Bob.address)
+        expect(await toNumber(balance)).to.be.closeTo(await toNumber(startUSDA.add(borrowAmount.mul(2))), 0.001, "Bob received USDa loan")
 
     })
 
@@ -78,12 +78,12 @@ describe("Lending with capped MATIC", () => {
         expect(await s.USDC.balanceOf(s.Bob.address)).to.eq(s.Bob_USDC, "Bob still holds starting USDC")
 
         //deposit some to be able to repay all
-        await s.USDC.connect(s.Bob).approve(s.USDI.address, BN("50e6"))
-        await s.USDI.connect(s.Bob).deposit(BN("50e6"))
+        await s.USDC.connect(s.Bob).approve(s.USDA.address, BN("50e6"))
+        await s.USDA.connect(s.Bob).deposit(BN("50e6"))
         await mineBlock()
 
-        await s.USDI.connect(s.Bob).approve(s.VaultController.address, await s.USDI.balanceOf(s.Bob.address))
-        await s.VaultController.connect(s.Bob).repayAllUSDi(s.BobVaultID)
+        await s.USDA.connect(s.Bob).approve(s.VaultController.address, await s.USDA.balanceOf(s.Bob.address))
+        await s.VaultController.connect(s.Bob).repayAllUSDa(s.BobVaultID)
         //await mineBlock()
         //await mineBlock()
         await advanceBlockHeight(1)
@@ -110,7 +110,7 @@ describe("Liquidations", () => {
 
     it("Borrow max", async () => {
 
-        const startUSDI = await s.USDI.balanceOf(s.Bob.address)
+        const startUSDA = await s.USDA.balanceOf(s.Bob.address)
 
         let startLiab = await s.VaultController.vaultLiability(s.BobVaultID)
         expect(startLiab).to.eq(0, "Liability is still 0")
@@ -120,8 +120,8 @@ describe("Liquidations", () => {
         const liab = await s.VaultController.vaultLiability(s.BobVaultID)
         expect(await toNumber(liab)).to.be.closeTo(await toNumber(borrowPower), 0.001, "Liability is correct")
 
-        let balance = await s.USDI.balanceOf(s.Bob.address)
-        expect(await toNumber(balance)).to.be.closeTo(await toNumber(borrowPower.add(startUSDI)), 0.1, "Balance is correct")
+        let balance = await s.USDA.balanceOf(s.Bob.address)
+        expect(await toNumber(balance)).to.be.closeTo(await toNumber(borrowPower.add(startUSDA)), 0.1, "Balance is correct")
 
     })
 
@@ -154,8 +154,8 @@ describe("Liquidations", () => {
         await stealMoney("0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503", s.Dave.address, s.usdcAddress, BN("200e12"))
         await mineBlock()
 
-        await s.USDC.connect(s.Dave).approve(s.USDI.address, await s.USDC.balanceOf(s.Dave.address))
-        await s.USDI.connect(s.Dave).deposit(await s.USDC.balanceOf(s.Dave.address))
+        await s.USDC.connect(s.Dave).approve(s.USDA.address, await s.USDC.balanceOf(s.Dave.address))
+        await s.USDA.connect(s.Dave).deposit(await s.USDC.balanceOf(s.Dave.address))
         await mineBlock()
 
         const tokensToLiquidate = await s.VaultController.tokensToLiquidate(s.BobVaultID, s.CappedMatic.address)
@@ -170,8 +170,8 @@ describe("Liquidations", () => {
         const startSupply = await s.CappedMatic.totalSupply()
         //expect(startSupply).to.eq(borrowAmount.mul(2).add(69), "Starting supply unchanged")
 
-        const startingUSDI = await s.USDI.balanceOf(s.Dave.address)
-        expect(startingUSDI).to.eq(s.Dave_USDC.add(BN("200e12")).mul(BN("1e12")))
+        const startingUSDA = await s.USDA.balanceOf(s.Dave.address)
+        expect(startingUSDA).to.eq(s.Dave_USDC.add(BN("200e12")).mul(BN("1e12")))
 
         const startingCMATIC = await s.CappedMatic.balanceOf(s.BobVault.address)
         const startMATIC = await s.MATIC.balanceOf(s.Dave.address)
@@ -190,7 +190,7 @@ describe("Liquidations", () => {
         let endMATIC = await s.MATIC.balanceOf(s.Dave.address)
         expect(await toNumber(endMATIC)).to.be.closeTo(await toNumber(tokensToLiquidate), 1, "Dave received the underlying MATIC")
 
-        const usdiSpent = startingUSDI.sub(await s.USDI.balanceOf(s.Dave.address))
+        const usdiSpent = startingUSDA.sub(await s.USDA.balanceOf(s.Dave.address))
 
         //price - liquidation incentive (5%)
         const effectivePrice = (price.mul(BN("1e18").sub(s.LiquidationIncentive))).div(BN("1e18"))
@@ -210,7 +210,7 @@ describe("Liquidations", () => {
         let liab = await s.VaultController.vaultLiability(s.BobVaultID)
         expect(liab).to.be.gt(0, "Liability exists")
 
-        await s.VaultController.connect(s.Bob).repayAllUSDi(s.BobVaultID)
+        await s.VaultController.connect(s.Bob).repayAllUSDa(s.BobVaultID)
         await mineBlock()
 
         liab = await s.VaultController.vaultLiability(s.BobVaultID)

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity =0.8.9;pragma experimental ABIEncoderV2;
+pragma solidity =0.8.13;
+pragma experimental ABIEncoderV2;
 
 import { BlockVerifier } from "./BlockVerifier.sol";
 import { MerklePatriciaVerifier } from "./MerklePatriciaVerifier.sol";

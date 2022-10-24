@@ -5,7 +5,7 @@ import { BN } from "../../../util/number";
 import { advanceBlockHeight, nextBlockTime, fastForward, mineBlock, OneWeek, OneYear, OneDay } from "../../../util/block";
 import { utils, BigNumber } from "ethers";
 import { upgrades, ethers } from "hardhat";
-import { calculateAccountLiability, payInterestMath, calculateBalance, getGas, getArgs, truncate, getEvent, calculatetokensToLiquidate, calculateUSDI2repurchase, changeInBalance } from "../../../util/math";
+import { calculateAccountLiability, payInterestMath, calculateBalance, getGas, getArgs, truncate, getEvent, calculatetokensToLiquidate, calculateUSDA2repurchase, changeInBalance } from "../../../util/math";
 import { currentBlock, reset } from "../../../util/block"
 import MerkleTree from "merkletreejs";
 import { keccak256, solidityKeccak256 } from "ethers/lib/utils";
@@ -50,7 +50,7 @@ describe("Testing Capped PAXG functions", () => {
         await s.VaultController.connect(s.Bob).borrowUsdi(s.BobVaultID, borrowPower)
         await mineBlock()
 
-        let balance = await s.USDI.balanceOf(s.Bob.address)
+        let balance = await s.USDA.balanceOf(s.Bob.address)
         expect(await toNumber(balance)).to.be.closeTo(await toNumber(borrowPower), 0.001, "Borrow amount correct")
 
     })
@@ -70,8 +70,8 @@ describe("Testing Capped PAXG functions", () => {
 
     it("Liquidate", async () => {
         //fund dave for liquidation
-        await s.USDC.connect(s.Dave).approve(s.USDI.address, BN("10000e6"))
-        await s.USDI.connect(s.Dave).deposit(BN("10000e6"))
+        await s.USDC.connect(s.Dave).approve(s.USDA.address, BN("10000e6"))
+        await s.USDA.connect(s.Dave).deposit(BN("10000e6"))
         await mineBlock()
 
         const startingPAXG = await s.PAXG.balanceOf(s.Dave.address)
@@ -86,12 +86,12 @@ describe("Testing Capped PAXG functions", () => {
         const tokensToLiq = await s.VaultController.tokensToLiquidate(s.BobVaultID, s.CappedPAXG.address)
         expect(tokensToLiq).to.be.gt(0, "Tokens to liquidate")
 
-        let balance = await s.USDI.balanceOf(s.Dave.address)
+        let balance = await s.USDA.balanceOf(s.Dave.address)
         expect(await toNumber(balance)).to.be.gt(((await toNumber(tokensToLiq)) * 1700), "Dave has enough funds to liquidate")
 
         balance = await ethers.provider.getBalance(s.Dave.address)
 
-        await s.USDI.connect(s.Dave).approve(s.VaultController.address, await s.USDI.balanceOf(s.Dave.address))
+        await s.USDA.connect(s.Dave).approve(s.VaultController.address, await s.USDA.balanceOf(s.Dave.address))
         await mineBlock()
 
         const result = await s.VaultController.connect(s.Dave).liquidateVault(s.BobVaultID, s.CappedPAXG.address, 1)
@@ -114,11 +114,11 @@ describe("Testing Capped PAXG functions", () => {
     it("Repay all", async () => {
 
         //Fund Bob to repayAll
-        await s.USDC.connect(s.Dave).approve(s.USDI.address, await s.USDC.balanceOf(s.Dave.address))
-        await s.USDI.connect(s.Dave).depositTo(BN("500e6"), s.Bob.address)
+        await s.USDC.connect(s.Dave).approve(s.USDA.address, await s.USDC.balanceOf(s.Dave.address))
+        await s.USDA.connect(s.Dave).depositTo(BN("500e6"), s.Bob.address)
         await mineBlock()
 
-        await s.VaultController.connect(s.Bob).repayAllUSDi(s.BobVaultID)
+        await s.VaultController.connect(s.Bob).repayAllUSDa(s.BobVaultID)
         await mineBlock()
 
         let liability = await s.VaultController.vaultLiability(s.BobVaultID)

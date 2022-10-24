@@ -28,8 +28,8 @@ import {
   ThreeLines0_100,
   ThreeLines0_100__factory,
   UniswapV3OracleRelay__factory,
-  USDI,
-  USDI__factory,
+  USDA,
+  USDA__factory,
   IVault__factory,
   VaultController,
   VaultController__factory,
@@ -44,15 +44,15 @@ import { DeployContract, DeployContractWithProxy } from "../../../util/deploy";
 import { ceaseImpersonation, impersonateAccount } from "../../../util/impersonator";
 require("chai").should();
 describe("Check Interest Protocol contracts", () => {
-  describe("Sanity check USDi deploy", () => {
+  describe("Sanity check USDa deploy", () => {
     it("Should return the right name, symbol, and decimals", async () => {
 
-      expect(await s.USDI.name()).to.equal("USDI Token");
-      expect(await s.USDI.symbol()).to.equal("USDI");
-      expect(await s.USDI.decimals()).to.equal(18);
-      //expect(await s.USDI.owner()).to.equal(s.Frank.address);
-      //s.owner = await s.USDI.owner()
-      s.pauser = await s.USDI.pauser()
+      expect(await s.USDA.name()).to.equal("USDA Token");
+      expect(await s.USDA.symbol()).to.equal("USDA");
+      expect(await s.USDA.decimals()).to.equal(18);
+      //expect(await s.USDA.owner()).to.equal(s.Frank.address);
+      //s.owner = await s.USDA.owner()
+      s.pauser = await s.USDA.pauser()
     });
   });
 

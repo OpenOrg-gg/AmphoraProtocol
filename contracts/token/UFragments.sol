@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /* solhint-disable */
-pragma solidity 0.8.9;
+pragma solidity 0.8.13;
 
 import "../_external/ERC20Detailed.sol";
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.13;
 
 /// @title OracleRelay Interface
 /// @notice Interface for interacting with OracleRelay

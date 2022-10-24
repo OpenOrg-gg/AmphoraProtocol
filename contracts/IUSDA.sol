@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.13;
 
 /// @title USDA Events
 /// @notice interface which contains any events which the USDA contract emits

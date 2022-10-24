@@ -4,7 +4,7 @@ import { showBody, showBodyCyan } from "../../../util/format";
 import { BN } from "../../../util/number";
 import { advanceBlockHeight, nextBlockTime, fastForward, mineBlock, OneWeek, OneYear, OneDay } from "../../../util/block";
 import { utils, BigNumber } from "ethers";
-import { calculateAccountLiability, payInterestMath, calculateBalance, getGas, getArgs, truncate, getEvent, calculatetokensToLiquidate, calculateUSDI2repurchase, changeInBalance } from "../../../util/math";
+import { calculateAccountLiability, payInterestMath, calculateBalance, getGas, getArgs, truncate, getEvent, calculatetokensToLiquidate, calculateUSDA2repurchase, changeInBalance } from "../../../util/math";
 import { currentBlock, reset } from "../../../util/block"
 import MerkleTree from "merkletreejs";
 import { keccak256, solidityKeccak256 } from "ethers/lib/utils";
@@ -52,8 +52,8 @@ describe("Check starting values", () => {
 describe("Lending with capped Aave", () => {
     it("Borrow a small amount against capped token", async () => {
 
-        const startUSDI = await s.USDI.balanceOf(s.Bob.address)
-        expect(startUSDI).to.eq(0, "Bob holds 0 USDi")
+        const startUSDA = await s.USDA.balanceOf(s.Bob.address)
+        expect(startUSDA).to.eq(0, "Bob holds 0 USDa")
 
         await s.VaultController.connect(s.Bob).borrowUsdi(s.BobVaultID, borrowAmount)
         await mineBlock()
@@ -61,8 +61,8 @@ describe("Lending with capped Aave", () => {
         await s.VaultController.connect(s.Bob).borrowUsdi(s.BobVaultID, borrowAmount)
         await mineBlock()
 
-        let balance = await s.USDI.balanceOf(s.Bob.address)
-        expect(await toNumber(balance)).to.be.closeTo(await toNumber(startUSDI.add(borrowAmount.mul(2))), 0.001, "Bob received USDi loan")
+        let balance = await s.USDA.balanceOf(s.Bob.address)
+        expect(await toNumber(balance)).to.be.closeTo(await toNumber(startUSDA.add(borrowAmount.mul(2))), 0.001, "Bob received USDa loan")
 
     })
 
@@ -130,12 +130,12 @@ describe("Lending with capped Aave", () => {
         expect(await s.USDC.balanceOf(s.Bob.address)).to.eq(s.Bob_USDC, "Bob still holds starting USDC")
 
         //deposit some to be able to repay all
-        await s.USDC.connect(s.Bob).approve(s.USDI.address, BN("50e6"))
-        await s.USDI.connect(s.Bob).deposit(BN("50e6"))
+        await s.USDC.connect(s.Bob).approve(s.USDA.address, BN("50e6"))
+        await s.USDA.connect(s.Bob).deposit(BN("50e6"))
         await mineBlock()
 
-        await s.USDI.connect(s.Bob).approve(s.VaultController.address, await s.USDI.balanceOf(s.Bob.address))
-        await s.VaultController.connect(s.Bob).repayAllUSDi(s.BobVaultID)
+        await s.USDA.connect(s.Bob).approve(s.VaultController.address, await s.USDA.balanceOf(s.Bob.address))
+        await s.VaultController.connect(s.Bob).repayAllUSDa(s.BobVaultID)
         //await mineBlock()
         //await mineBlock()
         await advanceBlockHeight(1)
@@ -158,7 +158,7 @@ describe("Liquidations - Aave", () => {
 
     it("Borrow max", async () => {
 
-        const startUSDI = await s.USDI.balanceOf(s.Bob.address)
+        const startUSDA = await s.USDA.balanceOf(s.Bob.address)
 
         let startLiab = await s.VaultController.vaultLiability(s.BobVaultID)
         expect(startLiab).to.eq(0, "Liability is still 0")
@@ -168,8 +168,8 @@ describe("Liquidations - Aave", () => {
         const liab = await s.VaultController.vaultLiability(s.BobVaultID)
         expect(await toNumber(liab)).to.be.closeTo(await toNumber(borrowPower), 0.001, "Liability is correct")
 
-        let balance = await s.USDI.balanceOf(s.Bob.address)
-        expect(await toNumber(balance)).to.be.closeTo(await toNumber(borrowPower.add(startUSDI)), 0.001, "Balance is correct")
+        let balance = await s.USDA.balanceOf(s.Bob.address)
+        expect(await toNumber(balance)).to.be.closeTo(await toNumber(borrowPower.add(startUSDA)), 0.001, "Balance is correct")
 
     })
 
@@ -208,16 +208,16 @@ describe("Liquidations - Aave", () => {
         expect(startSupply).to.eq(borrowAmount, "Starting supply unchanged")
 
 
-        await s.USDC.connect(s.Dave).approve(s.USDI.address, await s.USDC.balanceOf(s.Dave.address))
-        await s.USDI.connect(s.Dave).deposit(await s.USDC.balanceOf(s.Dave.address))
+        await s.USDC.connect(s.Dave).approve(s.USDA.address, await s.USDC.balanceOf(s.Dave.address))
+        await s.USDA.connect(s.Dave).deposit(await s.USDC.balanceOf(s.Dave.address))
         await mineBlock()
 
         let supply = await s.CappedAave.totalSupply()
 
         expect(await toNumber(supply)).to.be.closeTo(await toNumber(startSupply.sub(tokensToLiquidate)), 2, "Total supply reduced as Capped Aave is liquidatede")
 
-        const startingUSDI = await s.USDI.balanceOf(s.Dave.address)
-        expect(startingUSDI).to.eq(s.Dave_USDC.mul(BN("1e12")))
+        const startingUSDA = await s.USDA.balanceOf(s.Dave.address)
+        expect(startingUSDA).to.eq(s.Dave_USDC.mul(BN("1e12")))
 
         const startingWAAVE = await s.CappedAave.balanceOf(s.BobVault.address)
         const startAAVE = await s.AAVE.balanceOf(s.Dave.address)
@@ -232,7 +232,7 @@ describe("Liquidations - Aave", () => {
         let endAave = await s.AAVE.balanceOf(s.Dave.address)
         expect(await toNumber(endAave)).to.be.closeTo(await toNumber(tokensToLiquidate), 0.001, "Dave received the underlying Aave")
 
-        const usdiSpent = startingUSDI.sub(await s.USDI.balanceOf(s.Dave.address))
+        const usdiSpent = startingUSDA.sub(await s.USDA.balanceOf(s.Dave.address))
 
         //price - liquidation incentive (5%)
         const effectivePrice = (price.mul(BN("1e18").sub(s.LiquidationIncentive))).div(BN("1e18"))
@@ -252,7 +252,7 @@ describe("Liquidations - Aave", () => {
         let liab = await s.VaultController.vaultLiability(s.BobVaultID)
         expect(liab).to.be.gt(0, "Liability exists")
 
-        await s.VaultController.connect(s.Bob).repayAllUSDi(s.BobVaultID)
+        await s.VaultController.connect(s.Bob).repayAllUSDa(s.BobVaultID)
         await mineBlock()
 
         liab = await s.VaultController.vaultLiability(s.BobVaultID)

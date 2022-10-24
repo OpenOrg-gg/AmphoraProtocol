@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.13;
 
-import "./_external/IERC20Metadata.sol";
+
 import "./IUSDA.sol";
 
 import "./token/UFragments.sol";
@@ -18,7 +18,7 @@ import "hardhat/console.sol";
 /// @dev extends UFragments
 contract USDA is Initializable, PausableUpgradeable, UFragments, IUSDA, ExponentialNoError {
   IERC20 public _reserve;
-  IVaultController public _VaultController;
+  address public _VaultController;
 
   address public _pauser;
 
@@ -36,7 +36,7 @@ contract USDA is Initializable, PausableUpgradeable, UFragments, IUSDA, Exponent
 
   /// @notice any function with this modifier will call the pay_interest() function before any function logic is called
   modifier paysInterest() {
-    _VaultController.calculateInterest();
+    IVaultController(_VaultController).calculateInterest();
     _;
   }
 
@@ -108,7 +108,7 @@ contract USDA is Initializable, PausableUpgradeable, UFragments, IUSDA, Exponent
   /// @notice set the VaultController addr so that vault_master may mint/burn USDa without restriction
   /// @param vault_master_address address of vault master
   function setVaultController(address vault_master_address) external override onlyOwner {
-    _VaultController = IVaultController(vault_master_address);
+    _VaultController = vault_master_address;
   }
 
   /// @notice deposit SUSD to mint USDa
@@ -262,7 +262,7 @@ contract USDA is Initializable, PausableUpgradeable, UFragments, IUSDA, Exponent
   /// @notice without this, any SUSD sent to the contract could mess up the reserve ratio
   function donateReserve() external override onlyOwner whenNotPaused {
     uint256 totalSUSD = (_reserve.balanceOf(address(this))) * 1e12;
-    uint256 totalLiability = truncate(_VaultController.totalBaseLiability() * _VaultController.interestFactor());
+    uint256 totalLiability = truncate(IVaultController(_VaultController).totalBaseLiability() * IVaultController(_VaultController).interestFactor());
     require((totalSUSD + totalLiability) > _totalSupply, "No extra reserve");
 
     _donation((totalSUSD + totalLiability) - _totalSupply);

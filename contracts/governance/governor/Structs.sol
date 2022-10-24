@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.13;
 
 struct Proposal {
   /// @notice Unique id for looking up a proposal

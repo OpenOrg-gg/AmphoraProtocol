@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.13;
 
 //import "../_external/IWETH.sol";
 
@@ -33,7 +33,7 @@ contract VotingVault is Context {
   VaultInfo public _vaultInfo;
 
   VotingVaultController public _votingController;
-  IVaultController public _controller;
+  address public _controller;
 
   /// @notice checks if _msgSender is the controller of the voting vault
   modifier onlyVotingVaultController() {
@@ -63,7 +63,7 @@ contract VotingVault is Context {
     address voting_controller_address
   ) {
     _vaultInfo = VaultInfo(id_, vault_address);
-    _controller = IVaultController(controller_address);
+    _controller = controller_address;
     _votingController = VotingVaultController(voting_controller_address);
   }
 

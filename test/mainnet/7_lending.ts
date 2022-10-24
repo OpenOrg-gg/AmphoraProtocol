@@ -663,7 +663,7 @@ describe("Testing remaining vault functions", () => {
         assert.equal(solvency, true, "Carol's vault is solvent")
 
         //withdraw uni from vault
-        const withdrawResult = await s.CarolVault.connect(s.Carol).withdrawErc20(s.uniAddress, withdrawAmount)
+        const withdrawResult = await s.CarolVault.connect(s.Carol).withdrawFromVault(s.uniAddress, withdrawAmount)
         await mineBlock()
 
         balance = await s.UNI.balanceOf(s.Carol.address)
@@ -675,7 +675,7 @@ describe("Testing remaining vault functions", () => {
         assert.equal(solvency, true, "Carol's vault is solvent")
 
         //withdraw uni from vault
-        await expect(s.CarolVault.connect(s.Eric).withdrawErc20(s.uniAddress, withdrawAmount)).to.be.revertedWith("sender not minter")
+        await expect(s.CarolVault.connect(s.Eric).withdrawFromVault(s.uniAddress, withdrawAmount)).to.be.revertedWith("sender not minter")
         await mineBlock()
     })
 
@@ -696,10 +696,10 @@ describe("Testing remaining vault functions", () => {
         assert.equal(borrowPower.toString(), "0", "Eric's vault has 0 borrow power, so it is empty")
 
         //withdraw tiny amount
-        await expect(ericVault.withdrawErc20(s.UNI.address, 1)).to.be.reverted
+        await expect(ericVault.withdrawFromVault(s.UNI.address, 1)).to.be.reverted
 
         //withdraw 0 on empty vault - withdraw 0 is allowed
-        await expect(ericVault.withdrawErc20(s.UNI.address, 0)).to.not.be.reverted
+        await expect(ericVault.withdrawFromVault(s.UNI.address, 0)).to.not.be.reverted
     })
 
     it("liquidate a vault with exactly 0 borrow power (empty)", async () => {
@@ -714,7 +714,7 @@ describe("Testing remaining vault functions", () => {
         assert.equal(solvency, true, "Carol's vault is solvent")
 
         //withdraw uni from vault
-        await expect(s.CarolVault.connect(s.Carol).withdrawErc20(s.Frank.address, withdrawAmount)).to.be.reverted
+        await expect(s.CarolVault.connect(s.Carol).withdrawFromVault(s.Frank.address, withdrawAmount)).to.be.reverted
         await mineBlock()
     })
 
@@ -729,7 +729,7 @@ describe("Testing remaining vault functions", () => {
 
         //withdraw enough uni to make vault insolvent
         const vaultUni = await s.UNI.balanceOf(s.CarolVault.address)
-        await expect(s.CarolVault.connect(s.Carol).withdrawErc20(s.UNI.address, vaultUni)).to.be.revertedWith("over-withdrawal")
+        await expect(s.CarolVault.connect(s.Carol).withdrawFromVault(s.UNI.address, vaultUni)).to.be.revertedWith("over-withdrawal")
         await advanceBlockHeight(1)
 
         //repayAll
@@ -767,7 +767,7 @@ describe("Testing remaining vault functions", () => {
         assert.equal(solvency, false, "Carol's vault is not solvent")
 
         //withdraw uni from vault
-        await expect(s.CarolVault.connect(s.Carol).withdrawErc20(s.uniAddress, withdrawAmount)).to.be.revertedWith("over-withdrawal")
+        await expect(s.CarolVault.connect(s.Carol).withdrawFromVault(s.uniAddress, withdrawAmount)).to.be.revertedWith("over-withdrawal")
         await mineBlock()
     })
 

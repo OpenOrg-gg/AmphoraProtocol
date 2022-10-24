@@ -8,7 +8,7 @@ import { s } from "../scope";
 import { d } from "../DeploymentInfo";
 
 import { advanceBlockHeight, reset, mineBlock } from "../../../util/block";
-import { IERC20__factory, VaultController__factory, USDI__factory, OracleMaster__factory, CurveMaster__factory, ProxyAdmin__factory, ILido__factory, ILidoOracle__factory } from "../../../typechain-types";
+import { IERC20__factory, VaultController__factory, USDA__factory, OracleMaster__factory, CurveMaster__factory, ProxyAdmin__factory, ILido__factory, ILidoOracle__factory } from "../../../typechain-types";
 import _ from "lodash";
 //import { assert } from "console";
 
@@ -20,8 +20,8 @@ require("chai").should();
 // Carol: 100,000,000,000,000,000,000 (100 comp), 18dec
 // Dave: 10,000,000,000 usdc ($10,000) 6dec
 //
-// andy is a usdc holder. he wishes to deposit USDC to hold USDI
-// bob is an eth holder. He wishes to deposit his eth and borrow USDI
+// andy is a usdc holder. he wishes to deposit USDC to hold USDA
+// bob is an eth holder. He wishes to deposit his eth and borrow USDA
 // carol is a comp holder. she wishes to deposit her comp and then vote
 // dave is a liquidator. he enjoys liquidating, so he's going to try to liquidate Bob
 
@@ -72,7 +72,7 @@ describe("Token Setup", () => {
 
     it("Connect to mainnet deployments for interest protocol", async () => {
         s.VaultController = VaultController__factory.connect(d.VaultController, s.Frank)
-        s.USDI = USDI__factory.connect(d.USDI, s.Frank)
+        s.USDA = USDA__factory.connect(d.USDA, s.Frank)
         s.Curve = CurveMaster__factory.connect(d.Curve, s.Frank)
         s.Oracle = OracleMaster__factory.connect(d.Oracle, s.Frank)
 

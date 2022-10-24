@@ -6,7 +6,7 @@ import { BN } from "../../../util/number"
 import { s } from "../scope"
 import { d } from "../DeploymentInfo"
 import { advanceBlockHeight, reset, mineBlock } from "../../../util/block"
-import { InterestProtocolTokenDelegate__factory, IERC20__factory, IVOTE__factory, VaultController__factory, USDI__factory, OracleMaster__factory, CurveMaster__factory, ProxyAdmin__factory, VotingVaultController__factory, CappedGovToken__factory, VotingVault__factory, IVault__factory, ERC20__factory } from "../../../typechain-types"
+import { InterestProtocolTokenDelegate__factory, IERC20__factory, IVOTE__factory, VaultController__factory, USDA__factory, OracleMaster__factory, CurveMaster__factory, ProxyAdmin__factory, VotingVaultController__factory, CappedGovToken__factory, VotingVault__factory, IVault__factory, ERC20__factory } from "../../../typechain-types"
 
 require("chai").should()
 let usdc_minter = "0x8EB8a3b98659Cce290402893d0123abb75E3ab28"
@@ -62,7 +62,7 @@ describe("Token Setup", () => {
 
     it("Connect to mainnet deployments for interest protocol", async () => {
         s.VaultController = VaultController__factory.connect(d.VaultController, s.Frank)
-        s.USDI = USDI__factory.connect(d.USDI, s.Frank)
+        s.USDA = USDA__factory.connect(d.USDA, s.Frank)
         s.Curve = CurveMaster__factory.connect(d.Curve, s.Frank)
         s.Oracle = OracleMaster__factory.connect(d.Oracle, s.Frank)
 

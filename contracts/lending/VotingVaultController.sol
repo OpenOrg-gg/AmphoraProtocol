@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.13;
 
 import "../_external/IERC20Metadata.sol";
 import "../_external/openzeppelin/ERC20Upgradeable.sol";
@@ -7,6 +7,7 @@ import "../_external/openzeppelin/OwnableUpgradeable.sol";
 import "../_external/openzeppelin/Initializable.sol";
 
 import "./IVaultController.sol";
+import "./IVaultControllerStorage.sol";
 import "./VotingVault.sol";
 
 /// @title CappedGovToken
@@ -59,7 +60,7 @@ contract VotingVaultController is Initializable, OwnableUpgradeable {
   /// @return address of the new vault
   function mintVault(uint96 id) public returns (address) {
     if (_vaultId_votingVaultAddress[id] == address(0)) {
-      address vault_address = _vaultController.vaultAddress(id);
+      address vault_address = IVaultController(_vaultController).vaultAddress(id);
       if (vault_address != address(0)) {
         // mint the vault itself, deploying the contract
         address voting_vault_address = address(
