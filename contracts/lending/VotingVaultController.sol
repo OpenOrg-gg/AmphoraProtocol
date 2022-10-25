@@ -7,7 +7,6 @@ import "../_external/openzeppelin/OwnableUpgradeable.sol";
 import "../_external/openzeppelin/Initializable.sol";
 
 import "./IVaultController.sol";
-import "./IVaultControllerStorage.sol";
 import "./VotingVault.sol";
 
 /// @title CappedGovToken

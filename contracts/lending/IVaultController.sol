@@ -8,7 +8,13 @@ import "./ITokenInfo.sol";
 interface VaultControllerEvents {
   event InterestEvent(uint64 epoch, uint192 amount, uint256 curve_val);
   event NewProtocolFee(uint256 protocol_fee);
-  event RegisteredErc20(address token_address, uint256 LTVe4, address oracle_address, uint256 liquidationIncentivee4, bool isLP);
+  event RegisteredErc20(
+    address token_address,
+    uint256 LTVe4,
+    address oracle_address,
+    uint256 liquidationIncentivee4,
+    bool isLP
+  );
   event UpdateRegisteredErc20(
     address token_address,
     uint256 LTVe4,
@@ -23,6 +29,14 @@ interface VaultControllerEvents {
   event Liquidate(uint256 vaultId, address asset_address, uint256 usda_to_repurchase, uint256 tokens_to_liquidate);
   event Deposited(uint256 vaultId, address asset_address, uint256 amount);
   event Withdrawn(uint256 vaultId, address asset_address, uint256 amount);
+}
+
+struct VaultSummary {
+  uint96 id;
+  uint192 borrowingPower;
+  uint192 vaultLiability;
+  address[] tokenAddresses;
+  uint256[] tokenBalances;
 }
 
 /// @title VaultController Interface
@@ -63,14 +77,6 @@ interface IVaultController is VaultControllerEvents, ITokenInfo {
 
   function isEnabledLPToken(address) external view returns (bool);
 
-  struct VaultSummary {
-    uint96 id;
-    uint192 borrowingPower;
-    uint192 vaultLiability;
-    address[] tokenAddresses;
-    uint256[] tokenBalances;
-  }
-
   function pay_interest() external returns (uint256);
 
   function vaultSummaries(uint96 start, uint96 stop) external view returns (VaultSummary[] memory);
@@ -80,6 +86,8 @@ interface IVaultController is VaultControllerEvents, ITokenInfo {
 
   // vault management business
   function mintVault() external returns (address);
+
+  function patchTBL() external;
 
   function liquidateVault(
     uint96 id,
@@ -137,8 +145,10 @@ interface IVaultController is VaultControllerEvents, ITokenInfo {
     address oracle_address,
     uint256 liquidationIncentive
   ) external;
-  
+
   function _tokenAddress_tokenId(address) external returns (uint256);
+
   function tokenId_tokenInfo(uint256) external view returns (TokenInfo memory);
+
   function vaultControllerRewards() external view returns (address);
 }
