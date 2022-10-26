@@ -17,6 +17,14 @@ import {
   OracleMaster__factory,
   ProxyAdmin,
   ProxyAdmin__factory,
+  RewardFactory,
+  RewardFactory__factory,
+  ExtraRewardStashConvex,
+  ExtraRewardStashConvex__factory,
+  StashFactoryV2,
+  StashFactoryV2__factory,
+  TokenFactory,
+  TokenFactory__factory,
   TransparentUpgradeableProxy__factory,
   ThreeLines0_100,
   ThreeLines0_100__factory,
@@ -26,6 +34,12 @@ import {
   Vault,
   VaultController,
   VaultController__factory,
+  VaultControllerCoreLogic,
+  VaultControllerCoreLogic__factory,
+  VaultControllerSetter,
+  VaultControllerSetter__factory,
+  VaultControllerRewards,
+  VaultControllerRewards__factory,
   IVOTE,
   IVOTE__factory,
 } from "../../typechain-types";
@@ -47,12 +61,59 @@ const deployProxy = async () => {
     s.Frank
   );
   await mineBlock();
+  s.VaultControllerCoreLogic = await DeployContractWithProxy(
+    new VaultControllerCoreLogic__factory(s.Frank),
+    s.Frank,
+    s.ProxyAdmin
+  );
+  s.VaultControllerSetter = await DeployContractWithProxy(
+    new VaultControllerSetter__factory(s.Frank),
+    s.Frank,
+    s.ProxyAdmin
+  );
   s.VaultController = await DeployContractWithProxy(
     new VaultController__factory(s.Frank),
     s.Frank,
     s.ProxyAdmin
   );
-  await mineBlock();
+  s.VaultControllerRewards = await DeployContractWithProxy(
+    new VaultControllerRewards__factory(s.Frank),
+    s.Frank,
+    s.ProxyAdmin
+  );
+  s.ExtraRewardStashConvex = await DeployContractWithProxy(
+    new ExtraRewardStashConvex__factory(s.Frank),
+    s.Frank,
+    s.ProxyAdmin
+  );
+  s.RewardFactory = await DeployContractWithProxy(
+    new RewardFactory__factory(s.Frank),
+    s.Frank,
+    s.ProxyAdmin
+  );
+  s.StashFactory = await DeployContractWithProxy(
+    new StashFactoryV2__factory(s.Frank),
+    s.Frank,
+    s.ProxyAdmin,
+    s.VaultController.address,
+    s.RewardFactory.address,
+    s.ProxyAdmin.address,
+    s.ExtraRewardStashConvex
+  );
+  s.TokenFactory = await DeployContractWithProxy(
+    new TokenFactory__factory(s.Frank),
+    s.Frank,
+    s.ProxyAdmin
+  );
+  s.VaultControllerRewards = await DeployContractWithProxy(
+    new VaultControllerRewards__factory(s.Frank),
+    s.Frank,
+    s.ProxyAdmin,
+  );
+
+  await expect(s.VaultControllerRewards.initialize(s.VaultControllerRewards.address,s.TokenFactory.address,s.RewardFactory.address,s.StashFactory.address))
+ 
+
   s.USDA = await DeployContractWithProxy(
     new USDA__factory(s.Frank),
     s.Frank,
@@ -60,6 +121,7 @@ const deployProxy = async () => {
     s.usdcAddress
   );
   await mineBlock();
+  await expect(s.VaultController.initialize(s.VaultControllerRewards.address,s.VaultControllerRewards.address,s.VaultControllerCoreLogic.address,s.VaultControllerSetter.address))
 
   await expect(s.USDA.setVaultController(s.VaultController.address)).to.not.reverted
   await mineBlock();

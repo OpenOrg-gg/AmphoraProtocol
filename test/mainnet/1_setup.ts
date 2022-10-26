@@ -1,11 +1,12 @@
 import { expect, assert } from "chai";
-import { ethers, network, tenderly } from "hardhat";
+import { ethers, network, tenderly} from "hardhat";
 import { stealMoney } from "../../util/money";
 import { showBody } from "../../util/format";
 import { BN } from "../../util/number";
 import { s } from "./scope";
 import { advanceBlockHeight, reset, mineBlock } from "../../util/block";
 import { IERC20__factory, IVOTE__factory } from "../../typechain-types";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 //import { assert } from "console";
 
 require("chai").should();

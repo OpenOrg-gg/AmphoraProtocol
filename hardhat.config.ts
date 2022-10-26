@@ -8,7 +8,6 @@ import "@tenderly/hardhat-tenderly";
 import "@nomiclabs/hardhat-etherscan";
 
 import "hardhat-docgen";
-import "hardhat-contract-sizer";
 
 import { HardhatUserConfig } from "hardhat/types";
 import * as dotenv from "dotenv";
@@ -86,7 +85,7 @@ const config: HardhatUserConfig = {
       {
         version: "0.8.13",
         settings: {
-          viaIR: true,
+          viaIR: false,
           optimizer: {
             enabled: true,
             runs: 200,
@@ -156,12 +155,6 @@ const config: HardhatUserConfig = {
       polygon: process.env.ETHERSCAN_POLYGON_KEY!,
       optimism: process.env.ETHERSCAN_OPTIMISM_KEY!,
     },
-  },
-  contractSizer: {
-    alphaSort: true,
-    disambiguatePaths: false,
-    runOnCompile: true,
-    strict: true,
   },
   typechain: {
     outDir: "typechain-types",

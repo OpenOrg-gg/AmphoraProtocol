@@ -43,7 +43,7 @@ struct VaultSummary {
 /// @notice extends VaultControllerEvents
 interface IVaultController is VaultControllerEvents, ITokenInfo {
   // initializer
-  function initialize(address convex, address vaultControllerRewards) external;
+  function initialize(address convex, address vaultControllerRewards, address vaultControllerCoreLogic, address vaultControllerSetter) external;
 
   function FEE_DENOMINATOR() external view returns (uint256);
 

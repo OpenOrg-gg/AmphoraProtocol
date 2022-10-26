@@ -1,7 +1,9 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
-import { USDA, IERC20, IVOTE, VaultController, OracleMaster, AnchoredViewRelay, ChainlinkOracleRelay, IOracleRelay, CurveMaster, ThreeLines0_100, IVault, IOracleMaster, IVaultController, ProxyAdmin, IUSDA, ICurveMaster } from "../../typechain-types";
+import { USDA, IERC20, IVOTE, VaultController, VaultControllerCoreLogic, ExtraRewardStashConvex, ExtraRewardStashConvex__factory, TokenFactory, TokenFactory__factory, StashFactoryV2, StashFactoryV2__factory, RewardFactory, RewardFactory__factory,  VaultControllerCoreLogic__factory, VaultControllerRewards, VaultControllerRewards__factory, VaultControllerSetter, VaultControllerSetter__factory, OracleMaster, AnchoredViewRelay, ChainlinkOracleRelay, IOracleRelay, CurveMaster, ThreeLines0_100, IVault, IOracleMaster, IVaultController, ProxyAdmin, IUSDA, ICurveMaster, IVaultControllerRewards } from "../../typechain-types";
+import { IRewardFactory, IStashFactory, ITokenFactory } from "../../typechain-types/rewards/interfaces.sol";
+import { IConvexRewardsInterface } from "../../typechain-types/rewards/interfaces.sol/IConvexRewards";
 import { Addresser, MainnetAddresses } from "../../util/addresser";
 import { BN } from "../../util/number";
 
@@ -25,6 +27,13 @@ export class TestScope extends MainnetAddresses {
 
     ProxyAdmin!: ProxyAdmin;
     VaultController!: IVaultController;
+    VaultControllerCoreLogic!: IVaultController;
+    VaultControllerSetter!: IVaultController;
+    VaultControllerRewards!: IVaultControllerRewards;
+    StashFactory!: IStashFactory;
+    RewardFactory!: IRewardFactory;
+    TokenFactory!: ITokenFactory;
+    ExtraRewardStashConvex!: ExtraRewardStashConvex;
 
     Oracle!: IOracleMaster;
     AnchoredViewEth!: AnchoredViewRelay
