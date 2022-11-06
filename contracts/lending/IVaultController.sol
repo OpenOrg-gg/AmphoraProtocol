@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "./ITokenInfo.sol";
+struct TokenInfo {
+  bool isLP;
+  address tokenAddress;
+  address oracleAddress;
+  address wrappedTokenAddress;
+  uint256 LTV;
+  uint256 liquidationIncentive;
+}
 
 // @title VaultController Events
 /// @notice interface which contains any events which the VaultController contract emits
@@ -31,24 +38,31 @@ interface VaultControllerEvents {
   event Withdrawn(uint256 vaultId, address asset_address, uint256 amount);
 }
 
-struct VaultSummary {
-  uint96 id;
-  uint192 borrowingPower;
-  uint192 vaultLiability;
-  address[] tokenAddresses;
-  uint256[] tokenBalances;
-}
-
-/// @title VaultController Interface
-/// @notice extends VaultControllerEvents
-interface IVaultController is VaultControllerEvents, ITokenInfo {
+interface IVaultControllerState {
   // initializer
-  function initialize(address convex, address vaultControllerRewards, address vaultControllerCoreLogic, address vaultControllerSetter) external;
-
-  function FEE_DENOMINATOR() external view returns (uint256);
+  function initialize(
+    address convex,
+    address _vaultControllerRewards,
+    address _vaultControllerCoreLogic,
+    address _vaultControllerSetter
+  ) external;
 
   function earmarkIncentive() external view returns (uint256);
 
+  function vaultControllerRewards() external view returns (address);
+
+  function lockIncentive() external view returns (uint256);
+
+  function stakerIncentive() external view returns (uint256);
+
+  function platformFee() external view returns (uint256);
+
+  function MaxFees() external view returns (uint256);
+
+  function FEE_DENOMINATOR() external view returns (uint256);
+}
+
+interface IVaultControllerSetter is VaultControllerEvents {
   function tokensRegistered() external view returns (uint256);
 
   function vaultsMinted() external view returns (uint96);
@@ -65,58 +79,10 @@ interface IVaultController is VaultControllerEvents, ITokenInfo {
 
   function vaultIDs(address wallet) external view returns (uint96[] memory);
 
-  function amountToSolvency(uint96 id) external view returns (uint256);
-
-  function vaultLiability(uint96 id) external view returns (uint192);
-
-  function vaultBorrowingPower(uint96 id) external view returns (uint192);
-
-  function tokensToLiquidate(uint96 id, address token) external view returns (uint256);
-
-  function checkVault(uint96 id) external view returns (bool);
-
   function isEnabledLPToken(address) external view returns (bool);
-
-  function pay_interest() external returns (uint256);
-
-  function vaultSummaries(uint96 start, uint96 stop) external view returns (VaultSummary[] memory);
-
-  // interest calculations
-  function calculateInterest() external returns (uint256);
 
   // vault management business
   function mintVault() external returns (address);
-
-  function patchTBL() external;
-
-  function liquidateVault(
-    uint96 id,
-    address asset_address,
-    uint256 tokenAmount
-  ) external returns (uint256);
-
-  function borrowUsdi(uint96 id, uint192 amount) external;
-
-  function borrowUSDAto(
-    uint96 id,
-    uint192 amount,
-    address target
-  ) external;
-
-  function borrowUSDCto(
-    uint96 id,
-    uint192 usdc_amount,
-    address target
-  ) external;
-
-  function repayUSDa(uint96 id, uint192 amount) external;
-
-  function repayAllUSDa(uint96 id) external;
-
-  // admin
-  function pause() external;
-
-  function unpause() external;
 
   function getOracleMaster() external view returns (address);
 
@@ -146,9 +112,71 @@ interface IVaultController is VaultControllerEvents, ITokenInfo {
     uint256 liquidationIncentive
   ) external;
 
-  function _tokenAddress_tokenId(address) external returns (uint256);
+  function tokenAddress_tokenId(address) external returns (uint256);
 
   function tokenId_tokenInfo(uint256) external view returns (TokenInfo memory);
+}
 
-  function vaultControllerRewards() external view returns (address);
+interface IVaultControllerCoreLogic is VaultControllerEvents {
+  struct VaultSummary {
+    uint96 id;
+    uint192 borrowingPower;
+    uint192 vaultLiability;
+    address[] tokenAddresses;
+    uint256[] tokenBalances;
+  }
+
+  function pay_interest() external returns (uint256);
+
+  function vaultSummaries(uint96 start, uint96 stop) external view returns (VaultSummary[] memory);
+
+  function checkVault(uint96 id) external view returns (bool);
+
+  // admin
+  function pause() external;
+
+  function unpause() external;
+
+  function liquidateVault(
+    uint96 id,
+    address asset_address,
+    uint256 tokenAmount
+  ) external returns (uint256);
+
+  function borrowUsdi(uint96 id, uint192 amount) external;
+
+  function borrowUSDAto(
+    uint96 id,
+    uint192 amount,
+    address target
+  ) external;
+
+  function borrowUSDCto(
+    uint96 id,
+    uint192 usdc_amount,
+    address target
+  ) external;
+
+  function repayUSDa(uint96 id, uint192 amount) external;
+
+  function repayAllUSDa(uint96 id) external;
+
+  function tokensToLiquidate(uint96 id, address token) external view returns (uint256);
+
+  function patchTBL() external;
+
+  function amountToSolvency(uint96 id) external view returns (uint256);
+
+  function vaultLiability(uint96 id) external view returns (uint192);
+
+  function vaultBorrowingPower(uint96 id) external view returns (uint192);
+
+  // interest calculations
+  function calculateInterest() external returns (uint256);
+}
+
+/// @title VaultController Interface
+/// @notice extends VaultControllerEvents
+interface IVaultController is IVaultControllerSetter, IVaultControllerCoreLogic, IVaultControllerState {
+
 }

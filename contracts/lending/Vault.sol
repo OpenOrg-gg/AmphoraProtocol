@@ -28,15 +28,6 @@ struct PoolInfo {
   address rewardPool;
 }
 
-struct TokenInfo {
-  bool isLP;
-  address tokenAddress;
-  address oracleAddress;
-  address wrappedTokenAddress;
-  uint256 LTV;
-  uint256 liquidationIncentive;
-}
-
 /// @title Vault
 /// @notice our implentation of maker-vault like vault
 /// major differences:
@@ -145,9 +136,9 @@ contract Vault is IVault, Context {
     IVaultControllerRewards vaultControllerRewards = IVaultControllerRewards(controllerRewards);
     IVaultController(_controller).pay_interest();
     // get pool info and token info
-    uint256 _id = _controller._tokenAddress_tokenId(asset_address);
+    uint256 _id = _controller.tokenAddress_tokenId(asset_address);
     (address depositToken, , , address rewardPool) = vaultControllerRewards.poolInfo(_id - 1);
-    IVaultController.TokenInfo memory token_info = _controller.tokenId_tokenInfo(_id);
+    TokenInfo memory token_info = _controller.tokenId_tokenInfo(_id);
     // deposit token to the wrapped token
     WrappedToken(token_info.wrappedTokenAddress).deposit(msg.sender, amount);
     SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token_info.wrappedTokenAddress), address(this), amount);
@@ -165,8 +156,8 @@ contract Vault is IVault, Context {
     IVaultControllerRewards vaultControllerRewards = IVaultControllerRewards(controllerRewards);
     IVaultController(_controller).pay_interest();
     // get pool info and token info
-    uint256 _id = _controller._tokenAddress_tokenId(asset_address);
-    IVaultController.TokenInfo memory token_info = _controller.tokenId_tokenInfo(_id);
+    uint256 _id = _controller.tokenAddress_tokenId(asset_address);
+    TokenInfo memory token_info = _controller.tokenId_tokenInfo(_id);
     (address depositToken, , address stash, ) = vaultControllerRewards.poolInfo(_id - 1);
     // burn depositToken from reward pool
     ITokenMinter(depositToken).burn(address(this), amount);

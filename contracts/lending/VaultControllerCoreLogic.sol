@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "./VaultController.sol";
+import "./VaultControllerState.sol";
+import "./IVaultController.sol";
 
-contract VaultControllerCoreLogic is VaultController {
+contract VaultControllerCoreLogic is VaultControllerState, IVaultControllerCoreLogic {
   using SafeERC20 for IERC20;
   /// @notice any function with this modifier will call the pay_interest() function before
   modifier paysInterest() {
@@ -206,10 +207,10 @@ contract VaultControllerCoreLogic is VaultController {
     //decrease liquidator's USDa balance
     _usda.vaultControllerBurn(_msgSender(), usda_to_repurchase);
 
-    IVaultControllerRewards _vaultControllerRewards = IVaultControllerRewards(vaultControllerRewards);
+    IVaultControllerRewards vaultControllerRewards = IVaultControllerRewards(vaultControllerRewards);
     // get pool info and token info
     uint256 poolID = _tokenAddress_tokenId[asset_address] - 1;
-    (address depositToken, , address stash, ) = _vaultControllerRewards.poolInfo(poolID);
+    (address depositToken, , address stash, ) = vaultControllerRewards.poolInfo(poolID);
 
     TokenInfo memory token_info = _tokenId_tokenInfo[_tokenAddress_tokenId[asset_address]];
     // withdraw and burn depositToken from reward pool
