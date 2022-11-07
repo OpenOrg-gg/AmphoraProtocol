@@ -22,44 +22,62 @@ import "../_external/ozproxy/Proxy.sol";
 /// @title Controller of all vaults in the USDa borrow/lend system
 /// @notice VaultController contains all business logic for borrowing and lending through the protocol.
 /// It is also in charge of accruing interest.
-contract VaultController is Proxy, Initializable, PausableUpgradeable, ExponentialNoError, OwnableUpgradeable {
+contract VaultControllerState is
+  IVaultControllerState,
+  Proxy,
+  Initializable,
+  PausableUpgradeable,
+  ExponentialNoError,
+  OwnableUpgradeable
+{
   using SafeERC20 for IERC20;
 
   struct Interest {
     uint64 lastTime;
     uint192 factor;
   }
-  Interest public _interest;
-
-  address public vaultControllerRewards;
+  Interest internal _interest;
 
   // mapping of vault id to vault address
-  mapping(uint96 => address) public _vaultId_vaultAddress;
+  mapping(uint96 => address) internal _vaultId_vaultAddress;
 
   //mapping of wallet address to vault IDs []
-  mapping(address => uint96[]) public _wallet_vaultIDs;
+  mapping(address => uint96[]) internal _wallet_vaultIDs;
 
   // mapping of token address to token info
-  mapping(address => uint256) public _tokenAddress_tokenId;
+  mapping(address => uint256) internal _tokenAddress_tokenId;
 
-  mapping(uint256 => TokenInfo) public _tokenId_tokenInfo;
+  mapping(uint256 => TokenInfo) internal _tokenId_tokenInfo;
 
   // when getting the live price of the underlying token of the wrapped token,
   // we need a mapping from the wrapped token address to the underlying token address
-  mapping(address => address) public _wrappedTokenAddress_tokenAddress;
+  mapping(address => address) internal _wrappedTokenAddress_tokenAddress;
 
-  address public lockIncentiveReciever;
-  address public stakerIncentiveReciever;
-  address public platformFeeReciever;
+  // address public lockIncentiveReciever;
+  // address public stakerIncentiveReciever;
+  // address public platformFeeReciever;
 
-  address[] public _enabledTokens;
+  address[] internal _enabledTokens;
 
   //mappings of the enabled tokens for gas efficient single lookup
-  mapping(address => bool) public _enabledTokenLookup;
+  mapping(address => bool) internal _enabledTokenLookup;
 
-  address public _treasury;
-  address public _convex;
-  uint256 public _feeBasis;
+  OracleMaster internal _oracleMaster;
+  CurveMaster internal _curveMaster;
+
+  IUSDA internal _usda;
+  uint96 internal _vaultsMinted;
+
+  uint256 internal _tokensRegistered;
+  uint256 internal _lpTokensRegistered;
+  uint192 internal _totalBaseLiability;
+  uint192 internal _protocolFee;
+
+  address internal _treasury;
+  address internal _convex;
+  uint256 internal _feeBasis;
+
+  address public vaultControllerRewards;
 
   uint256 public lockIncentive = 1000; //incentive to crv stakers //this is likely cvxCRV
   uint256 public stakerIncentive = 450; //incentive to native token stakers //what is native incentive?
@@ -67,17 +85,6 @@ contract VaultController is Proxy, Initializable, PausableUpgradeable, Exponenti
   uint256 public platformFee = 0; //possible fee to build treasury
   uint256 public constant MaxFees = 2000;
   uint256 public constant FEE_DENOMINATOR = 10000;
-
-  OracleMaster public _oracleMaster;
-  CurveMaster public _curveMaster;
-
-  IUSDA public _usda;
-  uint96 public _vaultsMinted;
-
-  uint256 public _tokensRegistered;
-  uint256 public _lpTokensRegistered;
-  uint192 public _totalBaseLiability;
-  uint192 public _protocolFee;
 
   address public vaultControllerCoreLogic;
   address public vaultControllerSetter;
@@ -88,7 +95,7 @@ contract VaultController is Proxy, Initializable, PausableUpgradeable, Exponenti
     address _vaultControllerRewards,
     address _vaultControllerCoreLogic,
     address _vaultControllerSetter
-  ) external initializer {
+  ) external override initializer {
     __Ownable_init();
     __Pausable_init();
     _interest = Interest(uint64(block.timestamp), 1e18);
@@ -110,23 +117,23 @@ contract VaultController is Proxy, Initializable, PausableUpgradeable, Exponenti
     bytes4 sig = msg.sig;
 
     if (
-      sig == IVaultController.checkVault.selector ||
-      sig == IVaultController.pause.selector ||
-      sig == IVaultController.unpause.selector ||
-      sig == IVaultController.borrowUsdi.selector ||
-      sig == IVaultController.borrowUSDAto.selector ||
-      sig == IVaultController.borrowUSDCto.selector ||
-      sig == IVaultController.repayUSDa.selector ||
-      sig == IVaultController.repayAllUSDa.selector ||
-      sig == IVaultController.liquidateVault.selector ||
-      sig == IVaultController.tokensToLiquidate.selector ||
-      sig == IVaultController.patchTBL.selector ||
-      sig == IVaultController.amountToSolvency.selector ||
-      sig == IVaultController.vaultLiability.selector ||
-      sig == IVaultController.vaultBorrowingPower.selector ||
-      sig == IVaultController.calculateInterest.selector ||
-      sig == IVaultController.pay_interest.selector ||
-      sig == IVaultController.vaultSummaries.selector
+      sig == IVaultControllerCoreLogic.checkVault.selector ||
+      sig == IVaultControllerCoreLogic.pause.selector ||
+      sig == IVaultControllerCoreLogic.unpause.selector ||
+      sig == IVaultControllerCoreLogic.borrowUsdi.selector ||
+      sig == IVaultControllerCoreLogic.borrowUSDAto.selector ||
+      sig == IVaultControllerCoreLogic.borrowUSDCto.selector ||
+      sig == IVaultControllerCoreLogic.repayUSDa.selector ||
+      sig == IVaultControllerCoreLogic.repayAllUSDa.selector ||
+      sig == IVaultControllerCoreLogic.liquidateVault.selector ||
+      sig == IVaultControllerCoreLogic.tokensToLiquidate.selector ||
+      sig == IVaultControllerCoreLogic.patchTBL.selector ||
+      sig == IVaultControllerCoreLogic.amountToSolvency.selector ||
+      sig == IVaultControllerCoreLogic.vaultLiability.selector ||
+      sig == IVaultControllerCoreLogic.vaultBorrowingPower.selector ||
+      sig == IVaultControllerCoreLogic.calculateInterest.selector ||
+      sig == IVaultControllerCoreLogic.pay_interest.selector ||
+      sig == IVaultControllerCoreLogic.vaultSummaries.selector
     ) {
       return vaultControllerCoreLogic;
     } else {

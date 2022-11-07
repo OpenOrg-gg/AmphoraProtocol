@@ -43,10 +43,10 @@ describe("hardhat settings", () => {
     it("reset hardhat network each run", async () => {
         expect(await reset(0)).to.not.throw;
     });
-    it("set automine OFF", async () => {
-        expect(await network.provider.send("evm_setAutomine", [false])).to.not
-            .throw;
-    });
+    // it("set automine OFF", async () => {
+    //     expect(await network.provider.send("evm_setAutomine", [false])).to.not
+    //         .throw;
+    // });
 });
 
 describe("Token Setup", () => {

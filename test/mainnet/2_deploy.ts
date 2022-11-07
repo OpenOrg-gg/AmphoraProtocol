@@ -1,5 +1,5 @@
 import { s } from "./scope";
-import { upgrades, ethers } from "hardhat";
+import hre, { upgrades, ethers } from "hardhat";
 import { expect, assert } from "chai";
 import { showBody, showBodyCyan } from "../../util/format";
 import { BN } from "../../util/number";
@@ -33,7 +33,7 @@ import {
   USDA__factory,
   Vault,
   VaultController,
-  VaultController__factory,
+  VaultControllerState__factory,
   VaultControllerCoreLogic,
   VaultControllerCoreLogic__factory,
   VaultControllerSetter,
@@ -42,6 +42,7 @@ import {
   VaultControllerRewards__factory,
   IVOTE,
   IVOTE__factory,
+  IVaultController,
 } from "../../typechain-types";
 import {
   advanceBlockHeight,
@@ -53,78 +54,75 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 import { DeployContract, DeployContractWithProxy } from "../../util/deploy";
+import { Contract } from "ethers";
 let ProxyController: ProxyAdmin;
+
+export async function getContractAt<CType extends Contract>(abiType: string, address: string) {
+  return (await hre.ethers.getContractAt(abiType, address)) as CType;
+}
 
 const deployProxy = async () => {
   s.ProxyAdmin = await DeployContract(
     new ProxyAdmin__factory(s.Frank),
     s.Frank
   );
-  await mineBlock();
-  s.VaultControllerCoreLogic = await DeployContractWithProxy(
+  s.VaultControllerCoreLogic = await DeployContract(
     new VaultControllerCoreLogic__factory(s.Frank),
     s.Frank,
-    s.ProxyAdmin
   );
-  s.VaultControllerSetter = await DeployContractWithProxy(
+  s.VaultControllerSetter = await DeployContract(
     new VaultControllerSetter__factory(s.Frank),
     s.Frank,
-    s.ProxyAdmin
   );
-  s.VaultController = await DeployContractWithProxy(
-    new VaultController__factory(s.Frank),
+  s.VaultController = await DeployContract(
+    new VaultControllerState__factory(s.Frank),
     s.Frank,
-    s.ProxyAdmin
   );
-  s.VaultControllerRewards = await DeployContractWithProxy(
+  s.VaultControllerRewards = await DeployContract(
     new VaultControllerRewards__factory(s.Frank),
     s.Frank,
-    s.ProxyAdmin
   );
-  s.ExtraRewardStashConvex = await DeployContractWithProxy(
+  s.ExtraRewardStashConvex = await DeployContract(
     new ExtraRewardStashConvex__factory(s.Frank),
     s.Frank,
-    s.ProxyAdmin
   );
-  s.RewardFactory = await DeployContractWithProxy(
+  s.RewardFactory = await DeployContract(
     new RewardFactory__factory(s.Frank),
     s.Frank,
-    s.ProxyAdmin
+    s.ProxyAdmin.address,
   );
-  s.StashFactory = await DeployContractWithProxy(
+  s.StashFactory = await DeployContract(
     new StashFactoryV2__factory(s.Frank),
     s.Frank,
-    s.ProxyAdmin,
     s.VaultController.address,
     s.RewardFactory.address,
     s.ProxyAdmin.address,
-    s.ExtraRewardStashConvex
+    s.ExtraRewardStashConvex.address
   );
-  s.TokenFactory = await DeployContractWithProxy(
+  s.TokenFactory = await DeployContract(
     new TokenFactory__factory(s.Frank),
     s.Frank,
-    s.ProxyAdmin
+    s.ProxyAdmin.address
   );
-  s.VaultControllerRewards = await DeployContractWithProxy(
+  s.VaultControllerRewards = await DeployContract(
     new VaultControllerRewards__factory(s.Frank),
-    s.Frank,
-    s.ProxyAdmin,
+    s.Frank
   );
 
-  await expect(s.VaultControllerRewards.initialize(s.VaultControllerRewards.address,s.TokenFactory.address,s.RewardFactory.address,s.StashFactory.address))
- 
+  await s.VaultControllerRewards.connect(s.Frank).initialize(s.VaultControllerRewards.address, s.TokenFactory.address, s.RewardFactory.address, s.StashFactory.address);
 
-  s.USDA = await DeployContractWithProxy(
+  s.USDA = await DeployContract(
     new USDA__factory(s.Frank),
-    s.Frank,
-    s.ProxyAdmin,
-    s.usdcAddress
+    s.Frank
   );
-  await mineBlock();
-  await expect(s.VaultController.initialize(s.VaultControllerRewards.address,s.VaultControllerRewards.address,s.VaultControllerCoreLogic.address,s.VaultControllerSetter.address))
 
-  await expect(s.USDA.setVaultController(s.VaultController.address)).to.not.reverted
-  await mineBlock();
+  await s.VaultController.connect(s.Frank).initialize(s.VaultControllerRewards.address, s.VaultControllerRewards.address, s.VaultControllerCoreLogic.address, s.VaultControllerSetter.address);
+
+  await s.USDA.connect(s.Frank).initialize(s.usdcAddress);
+
+  await s.USDA.connect(s.Frank).setVaultController(s.VaultController.address);
+
+  s.VaultController = await getContractAt("contracts/lending/IVaultController.sol:IVaultController", s.VaultController.address);
 };
 
 require("chai").should();
@@ -359,7 +357,7 @@ describe("Deploy Contracts", () => {
         false
       )
     ).to.not.reverted;
-    //showBody("register WBTC")
+    // showBody("register WBTC")
     await expect(
       s.VaultController.connect(s.Frank).registerErc20(
         s.wbtcAddress,

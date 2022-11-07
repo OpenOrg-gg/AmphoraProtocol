@@ -27,6 +27,7 @@ const config: HardhatUserConfig = {
       mining: {
         auto: true,
       },
+      allowUnlimitedContractSize: true,
     },
     mainnet: {
       url: process.env.MAINNET_URL ? process.env.MAINNET_URL : zaddr,

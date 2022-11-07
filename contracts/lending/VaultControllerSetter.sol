@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "./VaultController.sol";
+import "./VaultControllerState.sol";
+import "./IVaultController.sol";
 
 /// @title Controller of all vaults in the USDa borrow/lend system
 /// @notice VaultController contains all business logic for borrowing and lending through the protocol.
 /// It is also in charge of accruing interest.
-contract VaultControllerSetter is VaultController {
+contract VaultControllerSetter is VaultControllerState, IVaultControllerSetter {
   function tokenId_tokenInfo(uint256 _id) external view returns (TokenInfo memory) {
     return _tokenId_tokenInfo[_id];
+  }
+
+  function tokenAddress_tokenId(address _token) external view returns (uint256) {
+    return _tokenAddress_tokenId[_token];
   }
 
   /// @notice get current interest factor

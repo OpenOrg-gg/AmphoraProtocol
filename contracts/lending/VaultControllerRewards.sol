@@ -4,7 +4,6 @@ pragma solidity 0.8.13;
 import "./interfaces.sol";
 
 contract VaultControllerRewards {
-
   struct PoolInfo {
     address depositToken;
     address gauge;
@@ -41,7 +40,11 @@ contract VaultControllerRewards {
     owner = msg.sender;
   }
 
-    function setFactories(address _rfactory, address _sfactory, address _tfactory) external  {
+  function setFactories(
+    address _rfactory,
+    address _sfactory,
+    address _tfactory
+  ) external {
     require(msg.sender == owner);
     //Unlike Convex, we leave these open to allow future upgrades to support new protocols
     _rewardFactory = _rfactory;
@@ -51,15 +54,20 @@ contract VaultControllerRewards {
     _stashFactory = _sfactory;
   }
 
-  function setRewardContracts(address _rewards, address _stakerRewards) external  {
+  function setRewardContracts(address _rewards, address _stakerRewards) external {
     require(msg.sender == owner);
     //also add flexibility for rewards.
     lockRewards = _rewards;
     stakerRewards = _stakerRewards;
   }
 
-    //callback from reward contract when crv is received.
-  function rewardClaimed(uint256 _pid, address _tokenEarned, address _address, uint256 _amount) external returns(bool){
+  //callback from reward contract when crv is received.
+  function rewardClaimed(
+    uint256 _pid,
+    address _tokenEarned,
+    address _address,
+    uint256 _amount
+  ) external returns (bool) {
     address rewardContract = poolInfo[_pid].rewardPool;
     require(msg.sender == poolInfo[_pid].stash || msg.sender == lockRewards);
     address _from = msg.sender;
@@ -70,16 +78,13 @@ contract VaultControllerRewards {
     return true;
   }
 
-  function addPool(address _depositToken, address _gauge, address _stash, address _rewardPool) public {
+  function addPool(
+    address _depositToken,
+    address _gauge,
+    address _stash,
+    address _rewardPool
+  ) public {
     require(msg.sender == vaultController);
-    poolInfo.push(
-        PoolInfo({
-          depositToken: _depositToken,
-          gauge: _gauge,
-          stash: _stash,
-          rewardPool: _rewardPool
-        })
-    ); 
+    poolInfo.push(PoolInfo({depositToken: _depositToken, gauge: _gauge, stash: _stash, rewardPool: _rewardPool}));
   }
-
 }
